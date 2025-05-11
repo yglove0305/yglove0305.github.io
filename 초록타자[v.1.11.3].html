@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>초록타자 3</title>
+  <style>
+    /* 기본 스타일 및 레이아웃 */
+    body {
+      background: #e8f5e9;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      color: #2e7d32;
+      position: relative;
+    }
+    #container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    /* 설정 구역 */
+    #settings {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    #settings div {
+      margin-bottom: 10px;
+    }
+    label {
+      margin-right: 5px;
+    }
+    
+    /* 현재 문장 표시 영역 */
+    #sample-text {
+      background: #e0f2f1;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 18px;
+      margin-bottom: 10px;
+      line-height: 1.5;
+      min-height: 80px;
+      /* 문장 전환 시 fade-in 애니메이션 적용 */
+    }
+    
+    /* 진행바 */
+    #progress-container {
+      width: 100%;
+      background-color: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    #progress-bar {
+      height: 20px;
+      width: 0%;
+      background-color: #66bb6a;
+      text-align: center;
+      line-height: 20px;
+      color: white;
+      transition: width 0.5s ease-in-out; /* 진행바 채워질 때 애니메이션 */
+    }
+    
+    /* 입력 영역 */
+    #typing-area {
+      width: 100%;
+      height: 100px;
+      font-size: 16px;
+      padding: 10px;
+      border: 2px solid #a5d6a7;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+      resize: none;
+      transition: border 0.3s ease; /* 포커스나 변경 시 애니메이션 */
+    }
+    
+    /* 통계 영역 */
+    #stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    #stats span {
+      font-weight: bold;
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    
+    /* 버튼 스타일 */
+    button {
+      padding: 10px 20px;
+      background-color: #66bb6a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      transition: transform 0.3s ease-in-out; /* 버튼 클릭 호버 애니메이션 */
+    }
+    button:hover {
+      background-color: #4caf50;
+      transform: scale(1.05);
+    }
+    
+    /* 오타 하이라이트 애니메이션 */
+    .highlight {
+      background-color: #ffcdd2;
+      transition: background-color 0.3s ease-out;
+    }
+    
+    /* 다크/라이트 모드 토글 버튼 */
+    #toggle-mode {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 5px 10px;
+      background-color: #66bb6a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    /* fade-in 애니메이션: 문장이 전환될 때 적용 */
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <button id="toggle-mode">다크 모드</button>
+  <div id="container">
+    <h1>초록타자 3</h1>
+    
+    <!-- 설정 구역: 모드, 난이도, 폰트 크기 -->
+    <div id="settings">
+      <div>
+        <label for="mode-select">모드 선택:</label>
+        <select id="mode-select">
+          <option value="unlimited" selected>무제한 모드</option>
+          <option value="timed">시간 제한 (60초)</option>
+          <option value="error-limit">오류 제한 (3오류)</option>
+        </select>
+      </div>
+      <div>
+        <label for="difficulty-select">난이도 선택:</label>
+        <select id="difficulty-select">
+          <option value="easy" selected>쉬움</option>
+          <option value="medium">보통</option>
+          <option value="hard">어려움</option>
+        </select>
+      </div>
+      <div>
+        <label for="font-size">폰트 크기:</label>
+        <select id="font-size">
+          <option value="small">작게</option>
+          <option value="medium" selected>보통</option>
+          <option value="large">크게</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- 현재 문장 표시 영역 -->
+    <div id="sample-text"></div>
+    <!-- 진행바 -->
+    <div id="progress-container">
+      <div id="progress-bar">0%</div>
+    </div>
+    <!-- 입력 영역 -->
+    <textarea id="typing-area" placeholder="여기에 타자를 입력하세요..."></textarea>
+    
+    <!-- 통계 영역 -->
+    <div id="stats">
+      <span id="timer">시간: 0초</span>
+      <span id="wpm">WPM: 0</span>
+      <span id="accuracy">정확도: 100%</span>
+      <span id="error-count">오류: 0</span>
+    </div>
+    
+    <!-- 제어 버튼 -->
+    <button id="reset-btn">새로운 도전</button>
+    <button id="export-btn">CSV 내보내기</button>
+    
+    <!-- 리더보드 -->
+    <div id="leaderboard">
+      <h3>리더보드 (최고 WPM)</h3>
+      <ul id="leaderboard-list"></ul>
+    </div>
+    
+    <!-- 기록 차트 (Chart.js 활용) -->
+    <div id="chart-container">
+      <h3>연습 기록 차트</h3>
+      <canvas id="history-chart" width="400" height="200"></canvas>
+    </div>
+    
+    <!-- 도전 기록 -->
+    <div id="history">
+      <h3>최근 기록</h3>
+      <ul id="history-list"></ul>
+    </div>
+  </div>
+  
+  <!-- Chart.js CDN (기록 차트를 위한 외부 라이브러리) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    /**************************************************
+     * 전역 변수 및 설정
+     **************************************************/
+    let currentSentences = [];  // 선택된 10개 문장 배열
+    let currentSentenceIndex = 0;
+    let currentText = "";       // 현재 문장
+    let overallTypedChars = 0;  // 누적 입력 문자 수
+    let overallCorrectChars = 0;// 누적 정확한 문자 수
+    let startTime = null;
+    let timerInterval = null;
+    let errorCount = 0;
+    let isComposing = false;
+    
+    let mode = "unlimited";
+    const timeLimit = 60; // 초
+    const errorLimit = 3;
+    
+    // DOM 요소 선택
+    const modeSelect = document.getElementById("mode-select");
+    const difficultySelect = document.getElementById("difficulty-select");
+    const fontSizeSelect = document.getElementById("font-size");
+    const typingArea = document.getElementById("typing-area");
+    
+    modeSelect.addEventListener("change", () => {
+      mode = modeSelect.value;
+      loadNewText();
+    });
+    
+    difficultySelect.addEventListener("change", loadNewText);
+    
+    fontSizeSelect.addEventListener("change", () => {
+      const size = fontSizeSelect.value;
+      if(size === "small") typingArea.style.fontSize = "14px";
+      else if(size === "medium") typingArea.style.fontSize = "16px";
+      else if(size === "large") typingArea.style.fontSize = "20px";
+    });
+    
+    /**************************************************
+     * 70개의 문장 (불필요한 접두사 없이 작성)
+     **************************************************/
+    const allSentences = [
+      "오늘 아침 공기는 상쾌하다.",
+      "따스한 햇살이 창문을 비춘다.",
+      "커피 한 잔의 여유를 즐겨보자.",
+      "바쁜 하루 속에서도 작은 쉼표가 필요하다.",
+      "책 한 권과 따뜻한 차가 최고의 조합이다.",
+      "자연은 언제나 우리에게 영감을 준다.",
+      "친구와의 대화는 마음의 에너지를 충전시킨다.",
+      "도전은 새로운 가능성의 시작이다.",
+      "꿈은 노력하는 사람의 발걸음을 이끈다.",
+      "작은 변화가 큰 결과를 만든다.",
+      "행복은 스스로 만들어 가는 것이다.",
+      "웃음은 마음을 치유하는 마법이다.",
+      "시간은 누구에게나 공평하게 주어진다.",
+      "진정한 우정은 오랜 시간이 지나도 변하지 않는다.",
+      "학습은 평생 동안 계속되어야 한다.",
+      "자신감을 가지고 도전에 임하라.",
+      "오늘은 내일보다 더 특별한 날이다.",
+      "긍정적인 생각이 인생을 바꾼다.",
+      "성공은 준비된 자에게 찾아온다.",
+      "노력은 결코 배신하지 않는다.",
+      "실패는 성공을 위한 발판이다.",
+      "끊임없는 열정이 최고의 성과를 이끈다.",
+      "용기는 두려움을 이기는 힘이다.",
+      "매일 반복되는 일상 속에도 소중한 순간이 있다.",
+      "희망은 어둠 속에서 빛나는 별이다.",
+      "도전 정신은 미래를 열어준다.",
+      "작은 성취가 큰 자신감을 불러온다.",
+      "꾸준한 연습은 반드시 결실을 맺는다.",
+      "현재의 노력이 내일의 꿈을 현실로 만든다.",
+      "자신의 한계를 넘어서기 위해 노력하라.",
+      "매 순간 최선을 다하는 것이 중요하다.",
+      "인내는 승리의 열쇠이다.",
+      "배움에는 끝이 없다.",
+      "새로운 시작은 언제나 설렘으로 가득하다.",
+      "변화는 도전을 두려워하지 않은 자의 것이다.",
+      "함께라면 어려움도 이겨낼 수 있다.",
+      "열린 마음이 새로운 기회를 만든다.",
+      "자연의 소리에 귀 기울여 보자.",
+      "조용한 아침 산책은 마음의 안식을 준다.",
+      "별을 바라보며 꿈을 꾸자.",
+      "매일 조금씩 발전하는 나를 느낀다.",
+      "노력이 쌓이면 큰 성과를 이룬다.",
+      "정직함은 최고의 미덕이다.",
+      "사랑은 모든 것을 극복한다.",
+      "작은 친절이 큰 기적을 만든다.",
+      "의지력이 강한 사람은 반드시 성공한다.",
+      "매 순간을 소중히 여기자.",
+      "시간은 우리 모두에게 주어진 귀한 자원이다.",
+      "서로의 다름을 인정하는 것이 성숙이다.",
+      "자연을 보호하는 것은 우리의 책임이다.",
+      "과거는 배움의 원천이다.",
+      "오늘의 노력은 내일의 보상이다.",
+      "노력과 끈기는 최고의 동반자이다.",
+      "긍정적인 에너지가 주변을 밝혀준다.",
+      "작은 목표가 큰 꿈으로 이어진다.",
+      "미래는 현명하게 준비한 사람의 것이다.",
+      "배움에 대한 열정은 마음의 불씨이다.",
+      "시간을 소중히 여기며 생활하자.",
+      "희망은 모든 어려움을 극복하게 해준다.",
+      "매일 아침 새로운 기회가 주어진다.",
+      "열심히 일한 보람을 느껴보자.",
+      "자신만의 길을 걸으며 꿈을 향해 나아가자.",
+      "성공은 작은 습관의 반복이다.",
+      "자연의 아름다움에 감탄하며 살아가자.",
+      "모든 순간이 인생의 귀중한 기록이다.",
+      "내일은 오늘보다 더 빛날 것이다.",
+      "마음의 여유를 가지며 살아가자.",
+      "작은 용기가 큰 변화를 만든다.",
+      "서로를 존중하는 사회가 되자."
+    ];
+    
+    /**************************************************
+     * 10개 문장을 무작위로 선택하여 배열 반환
+     **************************************************/
+    function getRandomSentences() {
+      let shuffled = allSentences.slice().sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 10);
+    }
+    
+    /**************************************************
+     * 현재 문장을 스팬으로 감싸서 오타 하이라이트 및 fade-in 애니메이션 적용
+     **************************************************/
+    function resetHighlights() {
+      const sampleEl = document.getElementById("sample-text");
+      sampleEl.innerHTML = currentText.split("")
+        .map(letter => `<span>${letter}</span>`)
+        .join("");
+      // fade-in 효과 재적용
+      sampleEl.classList.remove("fade-in");
+      void sampleEl.offsetWidth;
+      sampleEl.classList.add("fade-in");
+    }
+    
+    function resetStats() {
+      document.getElementById("error-count").textContent = "오류: 0";
+      errorCount = 0;
+    }
+    
+    /**************************************************
+     * 진행바 업데이트 : 현재 진행 중인 문장 인덱스 반영
+     **************************************************/
+    function updateProgressBar() {
+      const progressBar = document.getElementById("progress-bar");
+      const percentage = Math.round((currentSentenceIndex / currentSentences.length) * 100);
+      progressBar.style.width = percentage + "%";
+      progressBar.textContent = percentage + "%";
+    }
+    
+    /**************************************************
+     * 리더보드 및 기록 저장 (localStorage 활용)
+     **************************************************/
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    let historyResults = JSON.parse(localStorage.getItem("typingHistory")) || [];
+    
+    function updateLeaderboard(newResult) {
+      leaderboard.push(newResult);
+      leaderboard.sort((a, b) => b.wpm - a.wpm);
+      leaderboard = leaderboard.slice(0, 5);
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+      renderLeaderboard();
+    }
+    
+    function renderLeaderboard() {
+      const leaderboardList = document.getElementById("leaderboard-list");
+      leaderboardList.innerHTML = "";
+      leaderboard.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.textContent = `#${index + 1}: WPM ${entry.wpm}, 정확도 ${entry.accuracy}%, 오류 ${entry.errorCount}`;
+        leaderboardList.appendChild(li);
+      });
+    }
+    
+    function saveResult(result) {
+      historyResults.push(result);
+      localStorage.setItem("typingHistory", JSON.stringify(historyResults));
+      renderHistory();
+      updateChart();
+      updateLeaderboard(result);
+    }
+    
+    function renderHistory() {
+      const historyList = document.getElementById("history-list");
+      historyList.innerHTML = "";
+      historyResults.slice().reverse().forEach((result, index) => {
+        const li = document.createElement("li");
+        li.textContent = `도전 ${historyResults.length - index}: 시간 ${result.time}초, WPM ${result.wpm}, 정확도 ${result.accuracy}%, 오류 ${result.errorCount}`;
+        historyList.appendChild(li);
+      });
+    }
+    
+    /**************************************************
+     * 오디오 피드백 - 오타 발생 시 짧은 beep 소리
+     **************************************************/
+    function playErrorSound() {
+      const context = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(440, context.currentTime);
+      oscillator.connect(context.destination);
+      oscillator.start();
+      setTimeout(() => oscillator.stop(), 100);
+    }
+    
+    /**************************************************
+     * 오타 하이라이트 – composition 이벤트 활용 (한 글자 완성 후 체크)
+     **************************************************/
+    function updateHighlight() {
+      const typed = typingArea.value;
+      const sampleEl = document.getElementById("sample-text");
+      const spans = sampleEl.querySelectorAll("span");
+      let localErrorCount = 0;
+      spans.forEach((span, i) => {
+        const letter = typed[i];
+        if(letter == null) {
+          span.classList.remove("highlight");
+        } else if(letter === span.textContent) {
+          span.classList.remove("highlight");
+        } else {
+          if(!span.classList.contains("highlight")) playErrorSound();
+          span.classList.add("highlight");
+          localErrorCount++;
+        }
+      });
+      errorCount = localErrorCount;
+      document.getElementById("error-count").textContent = "오류: " + errorCount;
+      if(mode === "error-limit" && errorCount >= errorLimit)
+        finishChallenge();
+    }
+    
+    /**************************************************
+     * 전체 통계 계산 (누적 입력 및 현재 입력 합산)
+     **************************************************/
+    function calculateStats() {
+      const currentTyped = typingArea.value;
+      let currentCorrect = 0;
+      for(let i = 0; i < currentTyped.length; i++) {
+        if(currentTyped[i] === currentText[i]) currentCorrect++;
+      }
+      let totalTyped = overallTypedChars + currentTyped.length;
+      let totalCorrect = overallCorrectChars + currentCorrect;
+      
+      const elapsedTime = (Date.now() - startTime) / 1000;
+      const wpm = elapsedTime > 0 ? Math.round((totalTyped / 5) / (elapsedTime / 60)) : 0;
+      const accuracy = totalTyped === 0 ? 100 : Math.round((totalCorrect / totalTyped) * 100);
+      
+      document.getElementById("timer").textContent = "시간: " + Math.floor(elapsedTime) + "초";
+      document.getElementById("wpm").textContent = "WPM: " + wpm;
+      document.getElementById("accuracy").textContent = "정확도: " + accuracy + "%";
+      document.getElementById("error-count").textContent = "오류: " + errorCount;
+      
+      if(mode === "timed" && elapsedTime >= timeLimit)
+        finishChallenge();
+    }
+    
+    /**************************************************
+     * 도전 종료 처리
+     **************************************************/
+    function finishChallenge() {
+      clearInterval(timerInterval);
+      const currentTyped = typingArea.value;
+      let currentCorrect = 0;
+      for(let i = 0; i < currentTyped.length; i++) {
+        if(currentTyped[i] === currentText[i]) currentCorrect++;
+      }
+      let finalTyped = overallTypedChars + currentTyped.length;
+      let finalCorrect = overallCorrectChars + currentCorrect;
+      const elapsedTime = (Date.now() - startTime) / 1000;
+      const wpm = elapsedTime > 0 ? Math.round((finalTyped / 5) / (elapsedTime / 60)) : 0;
+      const accuracy = finalTyped === 0 ? 100 : Math.round((finalCorrect / finalTyped) * 100);
+      typingArea.disabled = true;
+      updateProgressBar();
+      const result = {
+        time: Math.floor(elapsedTime),
+        wpm: wpm,
+        accuracy: accuracy,
+        errorCount: errorCount,
+        sentences: currentSentences,
+        mode: mode,
+        timestamp: new Date().toISOString()
+      };
+      saveResult(result);
+    }
+    
+    /**************************************************
+     * 타이머 시작
+     **************************************************/
+    function startTimer() {
+      if(!startTime) {
+        startTime = Date.now();
+        timerInterval = setInterval(calculateStats, 1000);
+      }
+    }
+    
+    /**************************************************
+     * 새로운 도전(문장 세트) 로드 및 초기화
+     **************************************************/
+    function loadNewText() {
+      currentSentences = getRandomSentences();
+      currentSentenceIndex = 0;
+      currentText = currentSentences[currentSentenceIndex];
+      overallTypedChars = 0;
+      overallCorrectChars = 0;
+      document.getElementById("sample-text").innerHTML = "";
+      resetHighlights();
+      typingArea.value = "";
+      typingArea.disabled = false;
+      resetStats();
+      clearInterval(timerInterval);
+      startTime = null;
+      updateProgressBar();
+      // 현재 문장을 fade-in 효과와 함께 렌더링
+      resetHighlights();
+    }
+    
+    /**************************************************
+     * CSV 내보내기 기능
+     **************************************************/
+    function exportCSV() {
+      if(!historyResults.length) return;
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "시간(초),WPM,정확도(%),오류,모드,문장들,타임스탬프\n";
+      historyResults.forEach(result => {
+        csvContent += `${result.time},${result.wpm},${result.accuracy},${result.errorCount},"${result.mode}","${result.sentences.join(" | ")}",${result.timestamp}\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "typing_history.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    /**************************************************
+     * Chart.js를 이용한 기록 차트 업데이트
+     **************************************************/
+    let chart;
+    function updateChart() {
+      const ctx = document.getElementById("history-chart").getContext("2d");
+      const labels = historyResults.map(result => new Date(result.timestamp).toLocaleTimeString());
+      const dataWpm = historyResults.map(result => result.wpm);
+      if(chart) {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = dataWpm;
+        chart.update();
+      } else {
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'WPM 추이',
+              data: dataWpm,
+              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              fill: true,
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+    }
+    
+    /**************************************************
+     * 다크/라이트 모드 토글
+     **************************************************/
+    let darkMode = false;
+    function toggleMode() {
+      darkMode = !darkMode;
+      if(darkMode) {
+        document.body.style.background = "#263238";
+        document.body.style.color = "#ECEFF1";
+        document.getElementById("container").style.background = "#37474F";
+        document.getElementById("toggle-mode").textContent = "라이트 모드";
+      } else {
+        document.body.style.background = "#e8f5e9";
+        document.body.style.color = "#2e7d32";
+        document.getElementById("container").style.background = "#ffffff";
+        document.getElementById("toggle-mode").textContent = "다크 모드";
+      }
+    }
+    
+    /**************************************************
+     * 한글 IME 입력 처리를 위한 composition 이벤트
+     **************************************************/
+    typingArea.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+    typingArea.addEventListener("compositionend", () => {
+      isComposing = false;
+      updateHighlight();
+      calculateStats();
+    });
+    typingArea.addEventListener("input", () => {
+      if (!isComposing) {
+        if(!startTime) startTimer();
+        updateHighlight();
+        calculateStats();
+      } else {
+        if(!startTime) startTimer();
+      }
+    });
+    
+    /**************************************************
+     * 엔터키 이벤트: 현재 문장을 정확히 입력하면 다음 문장으로 진행
+     **************************************************/
+    typingArea.addEventListener("keydown", (event) => {
+      if(!isComposing && event.key === "Enter") {
+        event.preventDefault();  // 기본 엔터 줄바꿈 방지
+        let typed = typingArea.value.trim();
+        if(typed === currentText.trim()) {
+          // 현재 문장을 정확히 입력한 경우 누적 문자수 업데이트 후 다음 문장으로 전환
+          overallTypedChars += currentText.length;
+          overallCorrectChars += currentText.length;
+          currentSentenceIndex++;
+          updateProgressBar();
+          if(currentSentenceIndex < currentSentences.length) {
+            currentText = currentSentences[currentSentenceIndex];
+            document.getElementById("sample-text").innerHTML = "";
+            resetHighlights();
+            typingArea.value = "";
+            resetStats();
+          } else {
+            // 10개 문장을 모두 완료한 경우
+            finishChallenge();
+          }
+        } else {
+          playErrorSound();
+        }
+      }
+    });
+    
+    document.getElementById("reset-btn").addEventListener("click", loadNewText);
+    document.getElementById("export-btn").addEventListener("click", exportCSV);
+    document.getElementById("toggle-mode").addEventListener("click", toggleMode);
+    
+    // 초기화
+    loadNewText();
+    renderHistory();
+    renderLeaderboard();
+    updateChart();
+  </script>
+</body>
+</html>
