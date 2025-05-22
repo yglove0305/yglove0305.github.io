@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>초록타자 3</title>
   <style>
-    /* 기본 스타일 및 레이아웃 */
     body {
       background: #e8f5e9;
       font-family: Arial, sans-serif;
@@ -25,8 +24,6 @@
       text-align: center;
       margin-bottom: 20px;
     }
-    
-    /* 설정 구역 */
     #settings {
       display: flex;
       justify-content: space-around;
@@ -40,8 +37,6 @@
     label {
       margin-right: 5px;
     }
-    
-    /* 현재 문장 표시 영역 */
     #sample-text {
       background: #e0f2f1;
       padding: 10px;
@@ -50,10 +45,7 @@
       margin-bottom: 10px;
       line-height: 1.5;
       min-height: 80px;
-      /* 문장 전환 시 fade-in 애니메이션 적용 */
     }
-    
-    /* 진행바 */
     #progress-container {
       width: 100%;
       background-color: #ddd;
@@ -68,10 +60,8 @@
       text-align: center;
       line-height: 20px;
       color: white;
-      transition: width 0.5s ease-in-out; /* 진행바 채워질 때 애니메이션 */
+      transition: width 0.5s ease-in-out;
     }
-    
-    /* 입력 영역 */
     #typing-area {
       width: 100%;
       height: 100px;
@@ -82,10 +72,8 @@
       box-sizing: border-box;
       margin-bottom: 20px;
       resize: none;
-      transition: border 0.3s ease; /* 포커스나 변경 시 애니메이션 */
+      transition: border 0.3s ease;
     }
-    
-    /* 통계 영역 */
     #stats {
       display: flex;
       justify-content: space-around;
@@ -97,8 +85,6 @@
       font-size: 16px;
       margin: 5px 0;
     }
-    
-    /* 버튼 스타일 */
     button {
       padding: 10px 20px;
       background-color: #66bb6a;
@@ -109,20 +95,16 @@
       font-size: 16px;
       margin-right: 10px;
       margin-bottom: 10px;
-      transition: transform 0.3s ease-in-out; /* 버튼 클릭 호버 애니메이션 */
+      transition: transform 0.3s ease-in-out;
     }
     button:hover {
       background-color: #4caf50;
       transform: scale(1.05);
     }
-    
-    /* 오타 하이라이트 애니메이션 */
     .highlight {
       background-color: #ffcdd2;
       transition: background-color 0.3s ease-out;
     }
-    
-    /* 다크/라이트 모드 토글 버튼 */
     #toggle-mode {
       position: absolute;
       top: 20px;
@@ -135,8 +117,6 @@
       cursor: pointer;
       font-size: 14px;
     }
-    
-    /* fade-in 애니메이션: 문장이 전환될 때 적용 */
     .fade-in {
       animation: fadeIn 0.5s ease-out;
     }
@@ -144,14 +124,43 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    /* 다크모드용 추가 스타일 */
+    body.dark {
+      background: #263238 !important;
+      color: #ECEFF1 !important;
+    }
+    #container.dark {
+      background: #37474F !important;
+      color: #ECEFF1 !important;
+    }
+    #sample-text.dark {
+      background: #455a64 !important;
+      color: #ECEFF1 !important;
+    }
+    #progress-container.dark {
+      background-color: #546e7a !important;
+    }
+    #progress-bar.dark {
+      background-color: #388e3c !important;
+    }
+    #typing-area.dark {
+      background: #263238 !important;
+      color: #ECEFF1 !important;
+      border-color: #90caf9 !important;
+    }
+    button.dark, #toggle-mode.dark {
+      background-color: #388e3c !important;
+      color: #ECEFF1 !important;
+    }
+    #leaderboard.dark, #history.dark, #chart-container.dark {
+      color: #ECEFF1 !important;
+    }
   </style>
 </head>
 <body>
   <button id="toggle-mode">다크 모드</button>
   <div id="container">
     <h1>초록타자 3</h1>
-    
-    <!-- 설정 구역: 모드, 난이도, 폰트 크기 -->
     <div id="settings">
       <div>
         <label for="mode-select">모드 선택:</label>
@@ -178,90 +187,67 @@
         </select>
       </div>
     </div>
-    
-    <!-- 현재 문장 표시 영역 -->
     <div id="sample-text"></div>
-    <!-- 진행바 -->
     <div id="progress-container">
       <div id="progress-bar">0%</div>
     </div>
-    <!-- 입력 영역 -->
     <textarea id="typing-area" placeholder="여기에 타자를 입력하세요..."></textarea>
-    
-    <!-- 통계 영역 -->
     <div id="stats">
       <span id="timer">시간: 0초</span>
       <span id="wpm">WPM: 0</span>
       <span id="accuracy">정확도: 100%</span>
       <span id="error-count">오류: 0</span>
     </div>
-    
-    <!-- 제어 버튼 -->
     <button id="reset-btn">새로운 도전</button>
     <button id="export-btn">CSV 내보내기</button>
-    
-    <!-- 리더보드 -->
     <div id="leaderboard">
       <h3>리더보드 (최고 WPM)</h3>
       <ul id="leaderboard-list"></ul>
     </div>
-    
-    <!-- 기록 차트 (Chart.js 활용) -->
     <div id="chart-container">
       <h3>연습 기록 차트</h3>
       <canvas id="history-chart" width="400" height="200"></canvas>
     </div>
-    
-    <!-- 도전 기록 -->
     <div id="history">
       <h3>최근 기록</h3>
       <ul id="history-list"></ul>
     </div>
   </div>
-  
-  <!-- Chart.js CDN (기록 차트를 위한 외부 라이브러리) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    /**************************************************
-     * 전역 변수 및 설정
-     **************************************************/
-    let currentSentences = [];  // 선택된 10개 문장 배열
+    let currentSentences = [];
     let currentSentenceIndex = 0;
-    let currentText = "";       // 현재 문장
-    let overallTypedChars = 0;  // 누적 입력 문자 수
-    let overallCorrectChars = 0;// 누적 정확한 문자 수
+    let currentText = "";
+    let overallTypedChars = 0;
+    let overallCorrectChars = 0;
     let startTime = null;
     let timerInterval = null;
     let errorCount = 0;
     let isComposing = false;
-    
     let mode = "unlimited";
-    const timeLimit = 60; // 초
+    const timeLimit = 60;
     const errorLimit = 3;
-    
-    // DOM 요소 선택
+
     const modeSelect = document.getElementById("mode-select");
     const difficultySelect = document.getElementById("difficulty-select");
     const fontSizeSelect = document.getElementById("font-size");
     const typingArea = document.getElementById("typing-area");
-    
+    const sampleText = document.getElementById("sample-text");
+    const container = document.getElementById("container");
+    const toggleBtn = document.getElementById("toggle-mode");
+
     modeSelect.addEventListener("change", () => {
       mode = modeSelect.value;
       loadNewText();
     });
-    
     difficultySelect.addEventListener("change", loadNewText);
-    
     fontSizeSelect.addEventListener("change", () => {
       const size = fontSizeSelect.value;
       if(size === "small") typingArea.style.fontSize = "14px";
       else if(size === "medium") typingArea.style.fontSize = "16px";
       else if(size === "large") typingArea.style.fontSize = "20px";
     });
-    
-    /**************************************************
-     * 70개의 문장 (불필요한 접두사 없이 작성)
-     **************************************************/
+
     const allSentences = [
       "오늘 아침 공기는 상쾌하다.",
       "따스한 햇살이 창문을 비춘다.",
@@ -333,50 +319,43 @@
       "작은 용기가 큰 변화를 만든다.",
       "서로를 존중하는 사회가 되자."
     ];
-    
-    /**************************************************
-     * 10개 문장을 무작위로 선택하여 배열 반환
-     **************************************************/
+
     function getRandomSentences() {
       let shuffled = allSentences.slice().sort(() => Math.random() - 0.5);
       return shuffled.slice(0, 10);
     }
-    
-    /**************************************************
-     * 현재 문장을 스팬으로 감싸서 오타 하이라이트 및 fade-in 애니메이션 적용
-     **************************************************/
+
     function resetHighlights() {
-      const sampleEl = document.getElementById("sample-text");
-      sampleEl.innerHTML = currentText.split("")
+      sampleText.innerHTML = currentText.split("")
         .map(letter => `<span>${letter}</span>`)
         .join("");
-      // fade-in 효과 재적용
-      sampleEl.classList.remove("fade-in");
-      void sampleEl.offsetWidth;
-      sampleEl.classList.add("fade-in");
+      sampleText.classList.remove("fade-in");
+      void sampleText.offsetWidth;
+      sampleText.classList.add("fade-in");
     }
-    
+
     function resetStats() {
       document.getElementById("error-count").textContent = "오류: 0";
       errorCount = 0;
     }
-    
-    /**************************************************
-     * 진행바 업데이트 : 현재 진행 중인 문장 인덱스 반영
-     **************************************************/
+
     function updateProgressBar() {
       const progressBar = document.getElementById("progress-bar");
       const percentage = Math.round((currentSentenceIndex / currentSentences.length) * 100);
       progressBar.style.width = percentage + "%";
       progressBar.textContent = percentage + "%";
     }
-    
-    /**************************************************
-     * 리더보드 및 기록 저장 (localStorage 활용)
-     **************************************************/
-    let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-    let historyResults = JSON.parse(localStorage.getItem("typingHistory")) || [];
-    
+
+    // localStorage 오류 대비
+    let leaderboard = [];
+    let historyResults = [];
+    try {
+      leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    } catch (e) { leaderboard = []; }
+    try {
+      historyResults = JSON.parse(localStorage.getItem("typingHistory")) || [];
+    } catch (e) { historyResults = []; }
+
     function updateLeaderboard(newResult) {
       leaderboard.push(newResult);
       leaderboard.sort((a, b) => b.wpm - a.wpm);
@@ -384,7 +363,7 @@
       localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
       renderLeaderboard();
     }
-    
+
     function renderLeaderboard() {
       const leaderboardList = document.getElementById("leaderboard-list");
       leaderboardList.innerHTML = "";
@@ -394,7 +373,7 @@
         leaderboardList.appendChild(li);
       });
     }
-    
+
     function saveResult(result) {
       historyResults.push(result);
       localStorage.setItem("typingHistory", JSON.stringify(historyResults));
@@ -402,7 +381,7 @@
       updateChart();
       updateLeaderboard(result);
     }
-    
+
     function renderHistory() {
       const historyList = document.getElementById("history-list");
       historyList.innerHTML = "";
@@ -412,10 +391,7 @@
         historyList.appendChild(li);
       });
     }
-    
-    /**************************************************
-     * 오디오 피드백 - 오타 발생 시 짧은 beep 소리
-     **************************************************/
+
     function playErrorSound() {
       const context = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = context.createOscillator();
@@ -425,14 +401,10 @@
       oscillator.start();
       setTimeout(() => oscillator.stop(), 100);
     }
-    
-    /**************************************************
-     * 오타 하이라이트 – composition 이벤트 활용 (한 글자 완성 후 체크)
-     **************************************************/
+
     function updateHighlight() {
       const typed = typingArea.value;
-      const sampleEl = document.getElementById("sample-text");
-      const spans = sampleEl.querySelectorAll("span");
+      const spans = sampleText.querySelectorAll("span");
       let localErrorCount = 0;
       spans.forEach((span, i) => {
         const letter = typed[i];
@@ -451,10 +423,7 @@
       if(mode === "error-limit" && errorCount >= errorLimit)
         finishChallenge();
     }
-    
-    /**************************************************
-     * 전체 통계 계산 (누적 입력 및 현재 입력 합산)
-     **************************************************/
+
     function calculateStats() {
       const currentTyped = typingArea.value;
       let currentCorrect = 0;
@@ -463,25 +432,20 @@
       }
       let totalTyped = overallTypedChars + currentTyped.length;
       let totalCorrect = overallCorrectChars + currentCorrect;
-      
       const elapsedTime = (Date.now() - startTime) / 1000;
       const wpm = elapsedTime > 0 ? Math.round((totalTyped / 5) / (elapsedTime / 60)) : 0;
       const accuracy = totalTyped === 0 ? 100 : Math.round((totalCorrect / totalTyped) * 100);
-      
       document.getElementById("timer").textContent = "시간: " + Math.floor(elapsedTime) + "초";
       document.getElementById("wpm").textContent = "WPM: " + wpm;
       document.getElementById("accuracy").textContent = "정확도: " + accuracy + "%";
       document.getElementById("error-count").textContent = "오류: " + errorCount;
-      
       if(mode === "timed" && elapsedTime >= timeLimit)
         finishChallenge();
     }
-    
-    /**************************************************
-     * 도전 종료 처리
-     **************************************************/
+
     function finishChallenge() {
       clearInterval(timerInterval);
+      timerInterval = null;
       const currentTyped = typingArea.value;
       let currentCorrect = 0;
       for(let i = 0; i < currentTyped.length; i++) {
@@ -505,41 +469,32 @@
       };
       saveResult(result);
     }
-    
-    /**************************************************
-     * 타이머 시작
-     **************************************************/
+
     function startTimer() {
-      if(!startTime) {
+      if(!startTime && !timerInterval) {
         startTime = Date.now();
         timerInterval = setInterval(calculateStats, 1000);
       }
     }
-    
-    /**************************************************
-     * 새로운 도전(문장 세트) 로드 및 초기화
-     **************************************************/
+
     function loadNewText() {
       currentSentences = getRandomSentences();
       currentSentenceIndex = 0;
       currentText = currentSentences[currentSentenceIndex];
       overallTypedChars = 0;
       overallCorrectChars = 0;
-      document.getElementById("sample-text").innerHTML = "";
+      sampleText.innerHTML = "";
       resetHighlights();
       typingArea.value = "";
       typingArea.disabled = false;
       resetStats();
       clearInterval(timerInterval);
+      timerInterval = null;
       startTime = null;
       updateProgressBar();
-      // 현재 문장을 fade-in 효과와 함께 렌더링
       resetHighlights();
     }
-    
-    /**************************************************
-     * CSV 내보내기 기능
-     **************************************************/
+
     function exportCSV() {
       if(!historyResults.length) return;
       let csvContent = "data:text/csv;charset=utf-8,";
@@ -555,62 +510,53 @@
       link.click();
       document.body.removeChild(link);
     }
-    
-    /**************************************************
-     * Chart.js를 이용한 기록 차트 업데이트
-     **************************************************/
+
     let chart;
     function updateChart() {
-      const ctx = document.getElementById("history-chart").getContext("2d");
+      const chartEl = document.getElementById("history-chart");
+      if (!chartEl) return;
+      const ctx = chartEl.getContext("2d");
       const labels = historyResults.map(result => new Date(result.timestamp).toLocaleTimeString());
       const dataWpm = historyResults.map(result => result.wpm);
       if(chart) {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = dataWpm;
-        chart.update();
-      } else {
-        chart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'WPM 추이',
-              data: dataWpm,
-              borderColor: 'rgba(75, 192, 192, 1)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              fill: true,
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: { y: { beginAtZero: true } }
-          }
-        });
+        chart.destroy();
       }
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'WPM 추이',
+            data: dataWpm,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
     }
-    
-    /**************************************************
-     * 다크/라이트 모드 토글
-     **************************************************/
+
+    // 다크/라이트 모드 토글
     let darkMode = false;
     function toggleMode() {
       darkMode = !darkMode;
-      if(darkMode) {
-        document.body.style.background = "#263238";
-        document.body.style.color = "#ECEFF1";
-        document.getElementById("container").style.background = "#37474F";
-        document.getElementById("toggle-mode").textContent = "라이트 모드";
-      } else {
-        document.body.style.background = "#e8f5e9";
-        document.body.style.color = "#2e7d32";
-        document.getElementById("container").style.background = "#ffffff";
-        document.getElementById("toggle-mode").textContent = "다크 모드";
-      }
+      document.body.classList.toggle("dark", darkMode);
+      container.classList.toggle("dark", darkMode);
+      sampleText.classList.toggle("dark", darkMode);
+      document.getElementById("progress-container").classList.toggle("dark", darkMode);
+      document.getElementById("progress-bar").classList.toggle("dark", darkMode);
+      typingArea.classList.toggle("dark", darkMode);
+      toggleBtn.classList.toggle("dark", darkMode);
+      document.getElementById("leaderboard").classList.toggle("dark", darkMode);
+      document.getElementById("history").classList.toggle("dark", darkMode);
+      document.getElementById("chart-container").classList.toggle("dark", darkMode);
+      toggleBtn.textContent = darkMode ? "라이트 모드" : "다크 모드";
     }
-    
-    /**************************************************
-     * 한글 IME 입력 처리를 위한 composition 이벤트
-     **************************************************/
+
     typingArea.addEventListener("compositionstart", () => {
       isComposing = true;
     });
@@ -628,28 +574,22 @@
         if(!startTime) startTimer();
       }
     });
-    
-    /**************************************************
-     * 엔터키 이벤트: 현재 문장을 정확히 입력하면 다음 문장으로 진행
-     **************************************************/
     typingArea.addEventListener("keydown", (event) => {
       if(!isComposing && event.key === "Enter") {
-        event.preventDefault();  // 기본 엔터 줄바꿈 방지
+        event.preventDefault();
         let typed = typingArea.value.trim();
         if(typed === currentText.trim()) {
-          // 현재 문장을 정확히 입력한 경우 누적 문자수 업데이트 후 다음 문장으로 전환
           overallTypedChars += currentText.length;
           overallCorrectChars += currentText.length;
           currentSentenceIndex++;
           updateProgressBar();
           if(currentSentenceIndex < currentSentences.length) {
             currentText = currentSentences[currentSentenceIndex];
-            document.getElementById("sample-text").innerHTML = "";
+            sampleText.innerHTML = "";
             resetHighlights();
             typingArea.value = "";
             resetStats();
           } else {
-            // 10개 문장을 모두 완료한 경우
             finishChallenge();
           }
         } else {
@@ -657,11 +597,11 @@
         }
       }
     });
-    
+
     document.getElementById("reset-btn").addEventListener("click", loadNewText);
     document.getElementById("export-btn").addEventListener("click", exportCSV);
-    document.getElementById("toggle-mode").addEventListener("click", toggleMode);
-    
+    toggleBtn.addEventListener("click", toggleMode);
+
     // 초기화
     loadNewText();
     renderHistory();
