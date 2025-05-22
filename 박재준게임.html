@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>박재준 게임</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            padding: 50px;
+        }
+        h1 {
+            color: #333;
+            font-size: 36px;
+        }
+        button {
+            font-size: 20px;
+            margin: 10px;
+            padding: 15px 30px;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease-in-out;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        .scissors { background-color: #ff6b6b; color: white; }
+        .rock { background-color: #4caf50; color: white; }
+        .paper { background-color: #3498db; color: white; }
+        #result {
+            font-size: 28px;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <h1>박재준 게임 - 가위바위보!</h1>
+    <p>가위, 바위, 보 중 하나를 선택하세요:</p>
+    <button class="scissors" onclick="playGame('가위')">✌ 가위</button>
+    <button class="rock" onclick="playGame('바위')">✊ 바위</button>
+    <button class="paper" onclick="playGame('보')">🖐 보</button>
+    <p id="result"></p>
+
+    <script>
+        function playGame(userChoice) {
+            const choices = ['가위', '바위', '보'];
+            const computerChoice = choices[Math.floor(Math.random() * 3)];
+            let resultText = '';
+
+            if (userChoice === computerChoice) {
+                resultText = `무승부! 컴퓨터도 ${computerChoice}를 냈어요!`;
+            } else if (
+                (userChoice === '가위' && computerChoice === '보') ||
+                (userChoice === '바위' && computerChoice === '가위') ||
+                (userChoice === '보' && computerChoice === '바위')
+            ) {
+                resultText = "니는 박재준이얔ㅋㅋㅋㅋ";
+            } else {
+                resultText = "닌 박재준 아니여";
+            }
+
+            const resultElement = document.getElementById("result");
+            resultElement.innerText = resultText;
+            resultElement.style.opacity = "1";
+            resultElement.style.transform = "scale(1)";
+        }
+    </script>
+</body>
+</html>
