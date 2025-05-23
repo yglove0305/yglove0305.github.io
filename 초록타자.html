@@ -237,17 +237,23 @@
     const container = document.getElementById("container");
     const toggleBtn = document.getElementById("toggle-mode");
 
-    modeSelect.addEventListener("change", () => {
-      mode = modeSelect.value;
-      loadNewText();
-    });
-    difficultySelect.addEventListener("change", loadNewText);
-    fontSizeSelect.addEventListener("change", () => {
+    // 1. 폰트 크기 변경 처음부터 적용
+    function applyFontSize() {
       const size = fontSizeSelect.value;
       if(size === "small") typingArea.style.fontSize = "14px";
       else if(size === "medium") typingArea.style.fontSize = "16px";
       else if(size === "large") typingArea.style.fontSize = "20px";
+    }
+    fontSizeSelect.addEventListener("change", applyFontSize);
+
+    // 2. 모드 변경시 모드 변수 반영
+    modeSelect.addEventListener("change", () => {
+      mode = modeSelect.value;
+      loadNewText();
     });
+
+    // 3. 난이도는 실제로 반영하지 않지만, 만약 향후 반영할 경우 위해서 이벤트 유지(기능 없음)
+    difficultySelect.addEventListener("change", loadNewText);
 
     const allSentences = [
       "오늘 아침 공기는 상쾌하다.",
@@ -407,6 +413,8 @@
       const typed = typingArea.value;
       const spans = sampleText.querySelectorAll("span");
       let localErrorCount = 0;
+      // highlight 사운드가 여러 번 나는 현상 방지, 최초 한 글자에서만 나게
+      let playedErrorSound = false;
       spans.forEach((span, i) => {
         const letter = typed[i];
         if(letter == null) {
@@ -414,7 +422,12 @@
         } else if(letter === span.textContent) {
           span.classList.remove("highlight");
         } else {
-          if(!span.classList.contains("highlight")) playErrorSound();
+          if(!span.classList.contains("highlight")) {
+            if (!playedErrorSound) {
+              playErrorSound();
+              playedErrorSound = true;
+            }
+          }
           span.classList.add("highlight");
           localErrorCount++;
         }
@@ -445,6 +458,8 @@
     }
 
     function finishChallenge() {
+      // 이미 종료된 경우 중복 실행 방지
+      if (typingArea.disabled) return;
       clearInterval(timerInterval);
       timerInterval = null;
       const currentTyped = typingArea.value;
@@ -493,6 +508,10 @@
       timerInterval = null;
       startTime = null;
       updateProgressBar();
+      // 새로고침 후 이전 통계가 남는 현상 방지
+      document.getElementById("timer").textContent = "시간: 0초";
+      document.getElementById("wpm").textContent = "WPM: 0";
+      document.getElementById("accuracy").textContent = "정확도: 100%";
       resetHighlights();
     }
 
@@ -501,7 +520,8 @@
       let csvContent = "data:text/csv;charset=utf-8,";
       csvContent += "시간(초),WPM,정확도(%),오류,모드,문장들,타임스탬프\n";
       historyResults.forEach(result => {
-        csvContent += `${result.time},${result.wpm},${result.accuracy},${result.errorCount},"${result.mode}","${result.sentences.join(" | ")}",${result.timestamp}\n`;
+        // CSV 줄바꿈 오류 방지: 따옴표 안 쌈
+        csvContent += `"${result.time}","${result.wpm}","${result.accuracy}","${result.errorCount}","${result.mode.replace(/"/g, '""')}","${result.sentences.join(" | ").replace(/"/g, '""')}","${result.timestamp}"\n`;
       });
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
@@ -576,10 +596,13 @@
       }
     });
     typingArea.addEventListener("keydown", (event) => {
-      if(!isComposing && event.key === "Enter") {
+      // 한글 조합 중일 때 Enter 무시
+      if(isComposing) return;
+      if(event.key === "Enter") {
         event.preventDefault();
-        let typed = typingArea.value.trim();
-        if(typed === currentText.trim()) {
+        let typed = typingArea.value;
+        // 완전 일치만 통과(좌우 trim 제거)
+        if(typed === currentText) {
           overallTypedChars += currentText.length;
           overallCorrectChars += currentText.length;
           currentSentenceIndex++;
@@ -608,6 +631,8 @@
     renderHistory();
     renderLeaderboard();
     updateChart();
+    // 폰트 크기 초기화 반영
+    applyFontSize();
   </script>
 </body>
 </html>
