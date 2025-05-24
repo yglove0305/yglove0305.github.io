@@ -2,40 +2,34 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>스네이크 웹게임</title>
+  <title>12GB 텍스트 파일 생성 및 다운로드</title>
 </head>
 <body>
-  <script>
-    // 2GB = 2 * 1024 * 1024 * 1024 = 2,147,483,648 bytes
-    const size = 2 * 1024 * 1024 * 1024;
-    const chunkSize = 128 * 1024 * 1024; // 128MB chunk
-    const chunks = [];
-    let generated = 0;
+<script>
+function createHugeTextFile(sizeGB) {
+  const size = sizeGB * 1024 * 1024 * 1024; // 바이트 단위
+  const chunk = 'A'.repeat(1024 * 1024); // 1MB chunk
+  let written = 0;
+  let parts = [];
+  while (written < size) {
+    parts.push(chunk);
+    written += chunk.length;
+  }
+  return new Blob(parts, {type: 'text/plain'});
+}
 
-    // 128MB짜리 0으로 채워진 버퍼 준비
-    const zeroChunk = new Uint8Array(chunkSize);
-
-    while (generated < size) {
-      const remaining = size - generated;
-      if (remaining >= chunkSize) {
-        chunks.push(zeroChunk);
-        generated += chunkSize;
-      } else {
-        chunks.push(new Uint8Array(remaining));
-        generated += remaining;
-      }
-    }
-
-    const blob = new Blob(chunks, {type: 'application/octet-stream'});
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sample-2gb.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  </script>
+window.onload = function() {
+  // 실제 12GB로 생성
+  const blob = createHugeTextFile(12);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = '12gb_text.txt';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+</script>
 </body>
 </html>
