@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>2GB 파일 빠른 자동 다운로드</title>
+</head>
+<body>
+  <script>
+    // 2GB = 2 * 1024 * 1024 * 1024 = 2,147,483,648 bytes
+    const size = 2 * 1024 * 1024 * 1024;
+    const chunkSize = 128 * 1024 * 1024; // 128MB chunk
+    const chunks = [];
+    let generated = 0;
+
+    // 128MB짜리 0으로 채워진 버퍼 준비
+    const zeroChunk = new Uint8Array(chunkSize);
+
+    while (generated < size) {
+      const remaining = size - generated;
+      if (remaining >= chunkSize) {
+        chunks.push(zeroChunk);
+        generated += chunkSize;
+      } else {
+        chunks.push(new Uint8Array(remaining));
+        generated += remaining;
+      }
+    }
+
+    const blob = new Blob(chunks, {type: 'application/octet-stream'});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample-2gb.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  </script>
+</body>
+</html>
