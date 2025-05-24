@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>엔트리 조회수 브라우징</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 400px; margin: auto;}
+        input { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 8px 20px; font-weight: bold; }
+        #log { margin-top: 20px; color: #333; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>엔트리 작품 조회수 올리기 (브라우저 방식)</h2>
+        <label for="entryId">작품 아이디 입력:</label>
+        <input type="text" id="entryId" placeholder="예: 123456789abcdef">
+        <label for="count">반복 횟수 (최대 20):</label>
+        <input type="number" id="count" min="1" max="20" value="5">
+        <button onclick="start()">시작</button>
+        <div id="log"></div>
+        <iframe id="entryFrame" width="1" height="1" style="display:none;"></iframe>
+    </div>
+    <script>
+        let done = 0;
+        function start() {
+            done = 0;
+            const entryId = document.getElementById('entryId').value.trim();
+            const count = Math.min(Number(document.getElementById('count').value), 20);
+            const log = document.getElementById('log');
+            if (!entryId) {
+                log.textContent = '작품 아이디를 입력하세요.';
+                return;
+            }
+            log.textContent = '시작합니다...';
+            const frame = document.getElementById('entryFrame');
+            frame.style.display = 'block';
+
+            function visit() {
+                if (done >= count) {
+                    frame.style.display = 'none';
+                    log.textContent = `완료! 시도 횟수: ${done}`;
+                    return;
+                }
+                frame.src = `https://playentry.org/ws/${entryId}`;
+                done++;
+                log.textContent = `진행중... (${done}/${count})`;
+                setTimeout(visit, 2000); // 2초마다 갱신(너무 빠르면 차단 가능)
+            }
+            visit();
+        }
+    </script>
+</body>
+</html>
