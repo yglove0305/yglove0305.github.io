@@ -7,25 +7,27 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
         }
         .main-page, .error-page {
             display: none;
-            text-align: center;
-            padding: 50px;
         }
         .error-page {
             color: red;
         }
     </style>
     <script>
-        // Error simulation for demonstration purposes
-        function simulateError() {
-            // Simulate an error (set to true to trigger the error page)
-            return false; // Change to true to test the error page
+        // Error detection logic
+        function checkForError() {
+            // 여기에 실제 오류 감지 로직을 추가합니다.
+            // 예: API 호출 실패, 필수 데이터 누락 등
+            const simulatedError = false; // true로 변경하면 오류 페이지가 표시됩니다.
+            return simulatedError;
         }
 
         window.addEventListener('load', function() {
-            const isError = simulateError();
+            const isError = checkForError(); // 오류 감지 실행
 
             if (isError) {
                 document.querySelector('.error-page').style.display = 'block';
@@ -39,13 +41,13 @@
     <!-- Main Page Content -->
     <div class="main-page">
         <h1>Welcome to yglove0305.github.io</h1>
-        <p>This is the main page content.</p>
+        <p>This is the main page content. Everything is working fine!</p>
     </div>
 
     <!-- Error Page Content -->
     <div class="error-page">
         <h1>Oops! Something went wrong.</h1>
-        <p>We couldn't load the page you were looking for.</p>
+        <p>We encountered an error. Please try again later.</p>
         <p><a href="/">Go Back to Home</a></p>
     </div>
 </body>
