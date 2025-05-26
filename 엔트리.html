@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엔트리</title>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --secondary-color: #FFFFFF;
+            --accent-color: #FF647C;
+            --background-color: #F5F7FA;
+            --text-color: #333333;
+            --light-text-color: #666666;
+            --border-radius: 16px;
+            --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.8;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: var(--secondary-color);
+            text-align: center;
+            padding: 60px 20px;
+            border-bottom-left-radius: var(--border-radius);
+            border-bottom-right-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 3rem;
+            font-weight: 800;
+        }
+
+        header p {
+            font-size: 1.3rem;
+            margin-top: 20px;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        section {
+            background: var(--secondary-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 40px;
+            padding: 40px 30px;
+        }
+
+        section h2 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        section p, section ul {
+            font-size: 1.1rem;
+            color: var(--light-text-color);
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul li {
+            margin-bottom: 10px;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        ul li:before {
+            content: "✔";
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color var(--transition-speed);
+        }
+
+        a:hover {
+            color: var(--primary-color);
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 15px 30px;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 700;
+            transition: background var(--transition-speed), box-shadow var(--transition-speed);
+            box-shadow: var(--box-shadow);
+        }
+
+        .btn:hover {
+            background: var(--accent-color);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--light-text-color);
+            margin-top: 40px;
+            padding: 30px 0;
+        }
+
+        .quote {
+            font-style: italic;
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .highlight {
+            background: var(--background-color);
+            padding: 10px 20px;
+            border-left: 4px solid var(--primary-color);
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>엔트리 코딩 사이트</h1>
+        <p>상상력을 코딩으로 실현하는 플랫폼</p>
+    </header>
+    <main>
+        <section>
+            <h2>엔트리란 무엇인가요?</h2>
+            <p>
+                엔트리(Entry)는 코딩을 처음 배우는 사람들을 위한 무료 온라인 학습 플랫폼입니다. 블록 코딩 방식을 사용하여,
+                복잡한 프로그래밍 언어 없이도 코딩의 기본 개념과 창의적 사고를 배울 수 있는 환경을 제공합니다.
+            </p>
+            <p class="quote">
+                "코딩은 복잡하지 않습니다. 엔트리는 누구나 쉽게 창작의 즐거움을 느낄 수 있도록 설계되었습니다."
+            </p>
+        </section>
+        <section>
+            <h2>주요 특징</h2>
+            <ul>
+                <li>블록을 사용한 직관적인 코딩 방식</li>
+                <li>수백 가지의 학습 콘텐츠와 실습 프로젝트</li>
+                <li>창작물을 공유하고 피드백 받을 수 있는 커뮤니티</li>
+                <li>게임, 애니메이션, 인터랙티브 스토리 제작 가능</li>
+                <li>초보자부터 전문가까지 모두를 위한 맞춤형 학습 경로</li>
+            </ul>
+        </section>
+        <section>
+            <h2>누구를 위한 플랫폼인가요?</h2>
+            <p class="highlight">
+                엔트리는 모든 사람을 위한 플랫폼입니다. 코딩을 처음 배우는 어린이부터, 컴퓨터 교육을 시작하려는 선생님, 창의적 사고를 키우고 싶은 성인까지, 모두가 엔트리를 통해 코딩을 경험할 수 있습니다.
+            </p>
+            <ul>
+                <li>학교와 학원에서 코딩 수업을 진행하는 선생님</li>
+                <li>자녀의 코딩 교육을 지원하고자 하는 학부모</li>
+                <li>코딩을 처음 접하는 초중등 학생</li>
+                <li>창의적 아이디어를 구현하고자 하는 일반 사용자</li>
+            </ul>
+        </section>
+        <section>
+            <h2>엔트리의 학습 방식</h2>
+            <p>
+                엔트리는 실습과 프로젝트 중심의 학습 환경을 제공합니다. 사용자는 단순히 이론을 배우는 것이 아니라,
+                실질적인 프로젝트를 통해 코딩의 원리와 활용 방법을 익힐 수 있습니다.
+            </p>
+            <p>
+                학습 과정은 단계별로 구성되어 있으며, 초급에서 고급까지 사용자의 수준에 맞게 진행할 수 있습니다.
+                또한, 게임을 하는 것처럼 재미있게 코딩을 배울 수 있어 학습 동기를 지속적으로 유지시켜줍니다.
+            </p>
+        </section>
+        <section>
+            <h2>창작과 공유</h2>
+            <p>
+                엔트리의 가장 큰 강점 중 하나는 창작과 공유의 기능입니다. 사용자는 자신만의 게임, 애니메이션, 인터랙티브 스토리를 제작할 수 있으며,
+                이를 엔트리 커뮤니티에 공유하여 다른 사용자들과 소통할 수 있습니다.
+            </p>
+            <p>
+                특히, 다른 사용자의 피드백을 통해 작품을 개선하는 과정은 협업 능력과 문제 해결 능력을 키우는 데 큰 도움이 됩니다.
+            </p>
+        </section>
+        <section>
+            <h2>엔트리 바로가기</h2>
+            <p>
+                엔트리는 아래 링크를 통해 바로 접속할 수 있습니다.
+            </p>
+            <p>
+                <a href="https://playentry.org/" target="_blank" class="btn">엔트리 사이트 방문</a>
+            </p>
+        </section>
+    </main>
+    <footer>
+        &copy; 2025 엔트리 소개 | 모든 권리 보유
+    </footer>
+</body>
+</html>
