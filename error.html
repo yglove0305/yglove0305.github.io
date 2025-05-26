@@ -18,21 +18,24 @@
         }
     </style>
     <script>
-        // Error detection logic
-        function checkForError() {
-            // 여기에 실제 오류 감지 로직을 추가합니다.
-            // 예: API 호출 실패, 필수 데이터 누락 등
-            const simulatedError = false; // true로 변경하면 오류 페이지가 표시됩니다.
-            return simulatedError;
+        // Check if the domain is reachable
+        async function checkDomainAvailability(domain) {
+            try {
+                const response = await fetch(domain, { method: 'HEAD', mode: 'no-cors' });
+                return response.ok || response.type === 'opaque'; // Domain is reachable
+            } catch (error) {
+                return false; // Domain is not reachable
+            }
         }
 
-        window.addEventListener('load', function() {
-            const isError = checkForError(); // 오류 감지 실행
+        window.addEventListener('load', async function() {
+            const domain = "https://yglove0305.github.io"; // Replace with your domain
+            const isDomainAvailable = await checkDomainAvailability(domain);
 
-            if (isError) {
-                document.querySelector('.error-page').style.display = 'block';
-            } else {
+            if (isDomainAvailable) {
                 document.querySelector('.main-page').style.display = 'block';
+            } else {
+                document.querySelector('.error-page').style.display = 'block';
             }
         });
     </script>
@@ -46,8 +49,8 @@
 
     <!-- Error Page Content -->
     <div class="error-page">
-        <h1>Oops! Something went wrong.</h1>
-        <p>We encountered an error. Please try again later.</p>
+        <h1>Oops! The domain is not reachable.</h1>
+        <p>We couldn't load the page you were looking for.</p>
         <p><a href="/">Go Back to Home</a></p>
     </div>
 </body>
