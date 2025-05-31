@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>윤설의 홈페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>윤설의 홈페이지</h1>
+        <p>안녕하세요! 저는 7살 윤설입니다. 😆</p>
+        <img src="https://ifh.cc/g/vX6ZZk.jpg" alt="윤설의 사진">
+        <p>저는 재미있는 걸 좋아하고, 항상 웃음이 가득한 생활을 하고 있어요! 🎉</p>
+    </div>
+</body>
+</html>
