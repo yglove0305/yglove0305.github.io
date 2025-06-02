@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이윤설 게임</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        #gameArea { position: relative; width: 800px; height: 600px; border: 1px solid black; margin: auto; }
+        #target { width: 100px; height: 100px; position: absolute; cursor: pointer; }
+        #score { font-size: 24px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>이윤설 게임</h1>
+    <p>움직이는 이미지를 클릭해서 점수를 올려보세요!</p>
+    <div id="gameArea">
+        <img id="target" src="https://ifh.cc/g/vX6ZZk.jpg" alt="게임 이미지">
+    </div>
+    <p id="score">점수: 0</p>
+
+    <script>
+        let score = 0;
+        let target = document.getElementById("target");
+        let gameArea = document.getElementById("gameArea");
+        let scoreDisplay = document.getElementById("score");
+
+        function moveTarget() {
+            let maxX = gameArea.clientWidth - target.clientWidth;
+            let maxY = gameArea.clientHeight - target.clientHeight;
+
+            let newX = Math.floor(Math.random() * maxX);
+            let newY = Math.floor(Math.random() * maxY);
+
+            target.style.left = newX + "px";
+            target.style.top = newY + "px";
+        }
+
+        function playSound() {
+            let sound = new Audio("https://www.fesliyanstudios.com/play/167");
+            sound.play();
+        }
+
+        target.addEventListener("click", function() {
+            score++;
+            scoreDisplay.textContent = "점수: " + score;
+            playSound();
+            moveTarget();
+        });
+
+        setInterval(moveTarget, 1000);
+    </script>
+</body>
+</html>
