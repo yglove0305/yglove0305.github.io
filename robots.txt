@@ -1,3 +1,4 @@
 User-agent: *
-Disallow:
-Sitemap: https://yourwebsite.com/sitemap.xml
+Disallow: /
+Allow: /초록타자.html
+Sitemap: https://yglove0305.github.io/%EC%B4%88%EB%A1%9D%ED%83%80%EC%9E%90
