@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>비밀번호 채팅방</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Socket.IO 클라이언트 라이브러리 (Node.js 서버가 실행 중일 때 정상 로드됨) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      background: #f0f4f8;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 500px;
+    }
+    h2, h3 {
+      color: #333;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #messages {
+      border: 1px solid #ddd;
+      height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+    .system {
+      color: #555;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 비밀번호 입력 영역 -->
+    <div id="password-container">
+      <h2>비밀번호 입력</h2>
+      <input type="password" id="password-input" placeholder="비밀번호">
+      <button id="password-btn">입장</button>
+      <div id="password-error" style="color: red;"></div>
+    </div>
+
+    <!-- 채팅 영역 (비밀번호 통과 후 표시) -->
+    <div id="chat-container" style="display: none;">
+      <!-- 사용자 이름 설정 영역 -->
+      <div id="username-container">
+        <h3>사용자 이름 설정</h3>
+        <input type="text" id="username-input" placeholder="이름 입력">
+        <button id="username-btn">설정</button>
+        <div id="username-msg" style="margin-bottom:10px;"></div>
+      </div>
+      <!-- 실제 채팅방 -->
+      <div id="chat-room" style="display: none;">
+        <div id="messages"></div>
+        <input type="text" id="message-input" placeholder="메시지 입력">
+        <button id="send-btn">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const correctPassword = "56387";
+
+    // 비밀번호 검증
+    document.getElementById('password-btn').addEventListener('click', () => {
+      const pass = document.getElementById('password-input').value;
+      if (pass === correctPassword) {
+        document.getElementById('password-container').style.display = 'none';
+        document.getElementById('chat-container').style.display = 'block';
+        checkUsername();
+      } else {
+        document.getElementById('password-error').innerText = "비밀번호가 틀렸습니다.";
+      }
+    });
+
+    // userId 생성 및 localStorage에 저장
+    function generateUserId() {
+      let uid = localStorage.getItem('userId');
+      if (!uid) {
+        uid = '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('userId', uid);
+      }
+      return uid;
+    }
+    const userId = generateUserId();
+
+    // 이미 등록된 이름이 있으면 채팅방 바로 오픈
+    function checkUsername() {
+      const storedName = localStorage.getItem('username');
+      if (storedName) {
+        document.getElementById('username-container').style.display = 'none';
+        document.getElementById('chat-room').style.display = 'block';
+        appendMessage("시스템", "환영합니다, " + storedName + "님!");
+      }
+    }
+
+    // 이름 설정 요청
+    document.getElementById('username-btn').addEventListener('click', () => {
+      const username = document.getElementById('username-input').value.trim();
+      if (!username) {
+        document.getElementById('username-msg').innerText = "유효한 이름을 입력하세요.";
+        return;
+      }
+      fetch('/set-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, username })
+      })
+      .then(response => response.json())
+      .then(data => {
+        localStorage.setItem('username', data.username);
+        document.getElementById('username-msg').innerText = data.message;
+        document.getElementById('username-container').style.display = 'none';
+        document.getElementById('chat-room').style.display = 'block';
+        appendMessage("시스템", "환영합니다, " + data.username + "님!");
+      })
+      .catch(err => {
+        console.error('이름 설정 에러:', err);
+      });
+    });
+
+    // 메시지 전송
+    document.getElementById('send-btn').addEventListener('click', () => {
+      const message = document.getElementById('message-input').value;
+      const username = localStorage.getItem('username') || "익명";
+      if (message.trim()) {
+        socket.emit('chat-message', { username, message });
+        document.getElementById('message-input').value = "";
+      }
+    });
+
+    // 메시지 수신 및 표시
+    socket.on('chat-message', data => {
+      appendMessage(data.username, data.message);
+    });
+
+    function appendMessage(user, message) {
+      const messagesDiv = document.getElementById('messages');
+      const msgDiv = document.createElement('div');
+      msgDiv.innerHTML = "<strong>" + user + ":</strong> " + message;
+      // 시스템 메시지에 별도 스타일 적용
+      if (user === "시스템") {
+        msgDiv.classList.add('system');
+      }
+      messagesDiv.appendChild(msgDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  </script>
+</body>
+</html>
