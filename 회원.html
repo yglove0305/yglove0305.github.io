@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>회원 전용 사이트</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    /* 공통 박스 스타일 */
+    .box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 800px;
+      margin: 20px auto;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    /* 로그인 영역 스타일 */
+    #login {
+      max-width: 400px;
+    }
+    input[type="password"] {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005bb5;
+    }
+    .error {
+      color: red;
+    }
+    /* 애니메이션 */
+    .fade-out {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .fade-in {
+      animation: fadeInAnimation 0.5s forwards;
+    }
+    @keyframes fadeInAnimation {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    /* 다운로드 카드 컨테이너 */
+    .download-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    /* 개별 다운로드 카드 */
+    .download-card {
+      background-color: #f9f9f9;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      width: 240px;
+      padding: 15px;
+      box-shadow: 0 2px 2px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    .download-card h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    /* 활성 다운로드 버튼 */
+    .download-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #0066cc;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .download-btn:hover {
+      background-color: #005bb5;
+    }
+    /* 플레이스홀더 카드 */
+    .placeholder {
+      color: #888;
+      font-style: italic;
+      border-style: dashed;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 로그인 영역 -->
+  <div id="login" class="box">
+    <h2>회원 전용 사이트</h2>
+    <p>비밀번호를 입력해주세요.</p>
+    <input type="password" id="passwordInput" placeholder="비밀번호">
+    <br>
+    <button onclick="checkPassword()">확인</button>
+    <p id="message" class="error"></p>
+  </div>
+
+  <!-- 회원 전용 콘텐츠 영역 -->
+  <div id="memberContent" class="box" style="display:none; opacity: 0;">
+    <h2>회원님을 위한 악보 다운로드</h2>
+    
+    <!-- 다운로드 카드 컨테이너 -->
+    <div class="download-container">
+      <!-- 첫 번째 카드: 사용 가능한 악보 -->
+      <div class="download-card">
+        <h3>여명의 눈동자 악보</h3>
+        <a class="download-btn" href="https://pdfhost.io/v/EvmFmL7en3_%C3%AC%C2%AC%C3%AB%C2%AA%C3%AC_%C3%AB%C3%AB%C3%AC.pdf" download="여명의눈동자악보.pdf">다운로드</a>
+      </div>
+      <!-- 이후 추가될 악보를 위한 플레이스홀더 카드 예시 (필요에 따라 카드 수 조절 가능) -->
+      <div class="download-card placeholder">
+        <h3>예정된 악보</h3>
+        <p>추후 업데이트 예정</p>
+      </div>
+      <div class="download-card placeholder">
+        <h3>예정된 악보</h3>
+        <p>추후 업데이트 예정</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function checkPassword() {
+      const pwd = document.getElementById('passwordInput').value;
+      if (pwd === "1029") {
+        // 로그인 영역 애니메이션 (페이드 아웃)
+        const loginBox = document.getElementById('login');
+        loginBox.classList.add("fade-out");
+        setTimeout(function() {
+          loginBox.style.display = "none";
+          // 회원 콘텐츠 영역 표시 후 페이드 인
+          const memberContent = document.getElementById('memberContent');
+          memberContent.style.display = "block";
+          void memberContent.offsetWidth; // 강제 리플로우
+          memberContent.classList.add("fade-in");
+        }, 500);
+      } else {
+        document.getElementById('message').textContent = "비밀번호가 올바르지 않습니다.";
+      }
+    }
+  </script>
+
+</body>
+</html>
