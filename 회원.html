@@ -11,6 +11,29 @@
       margin: 0;
       padding: 20px;
     }
+    /* 공지 영역 스타일 */
+    .announcement-container {
+      overflow: hidden;
+      background-color: #ffd700;
+      padding: 10px 0;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .announcement-text {
+      white-space: nowrap;
+      font-weight: bold;
+      font-size: 18px;
+      /* 오른쪽 밖에서 시작하여 왼쪽으로 이동 */
+      animation: moveText 10s linear infinite;
+    }
+    @keyframes moveText {
+      0% {
+        transform: translateX(110%);
+      }
+      100% {
+        transform: translateX(-110%);
+      }
+    }
     /* 공통 박스 스타일 */
     .box {
       background: #fff;
@@ -46,7 +69,7 @@
     .error {
       color: red;
     }
-    /* 애니메이션 */
+    /* 로그인/콘텐츠 영역 페이드 인/아웃 애니메이션 */
     .fade-out {
       opacity: 0;
       transition: opacity 0.5s ease;
@@ -99,9 +122,30 @@
       font-style: italic;
       border-style: dashed;
     }
+    /* 추천 사이트 영역 */
+    .recommendation {
+      margin-top: 40px;
+      padding: 15px;
+      background-color: #eef7ff;
+      border: 2px solid #cce5ff;
+      border-radius: 8px;
+    }
+    .recommendation a {
+      color: #0066cc;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .recommendation a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
+
+  <!-- 공지 영역 -->
+  <div class="announcement-container">
+    <div class="announcement-text">공지📢: 업데이트가 완료되었습니다!</div>
+  </div>
 
   <!-- 로그인 영역 -->
   <div id="login" class="box">
@@ -124,7 +168,7 @@
         <h3>여명의 눈동자 악보</h3>
         <a class="download-btn" href="https://pdfhost.io/v/EvmFmL7en3_%C3%AC%C2%AC%C3%AB%C2%AA%C3%AC_%C3%AB%C3%AB%C3%AC.pdf" download="여명의눈동자악보.pdf">다운로드</a>
       </div>
-      <!-- 이후 추가될 악보를 위한 플레이스홀더 카드 예시 (필요에 따라 카드 수 조절 가능) -->
+      <!-- 이후 추가될 악보를 위한 플레이스홀더 카드 예시 -->
       <div class="download-card placeholder">
         <h3>예정된 악보</h3>
         <p>추후 업데이트 예정</p>
@@ -133,6 +177,12 @@
         <h3>예정된 악보</h3>
         <p>추후 업데이트 예정</p>
       </div>
+    </div>
+
+    <!-- 추천 사이트 섹션 -->
+    <div class="recommendation">
+      <h2>추천 사이트</h2>
+      <p>새로운 영감을 얻고 싶다면 <a href="https://slowroads.io/" target="_blank" rel="noopener noreferrer">Slowroads.io</a>를 방문해 보세요.</p>
     </div>
   </div>
 
