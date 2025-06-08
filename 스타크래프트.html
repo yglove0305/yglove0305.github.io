@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>RTS 데모 - 워커 수확(20개씩) & 적군 등장 조정</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000;
+    }
+    /* HUD 스타일 */
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 100;
+    }
+    #hud > div {
+      margin-bottom: 5px;
+    }
+    #button-panel button {
+      margin: 5px 5px 0 0;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 3px;
+      background-color: #007bff;
+      color: white;
+    }
+    #button-panel button:hover {
+      background-color: #0056b3;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- HUD: 자원, 선택된 유닛 수, 건물/유닛 생산, 기지 이동 버튼 -->
+  <div id="hud">
+    <div>Minerals: <span id="minerals">500</span></div>
+    <div>Selected Units: <span id="selectedCount">0</span></div>
+    <div id="button-panel">
+      <button id="buildCommand-center">Build Command Center (400 minerals)</button>
+      <button id="trainMarine">Train Marine (50 minerals)</button>
+      <button id="trainWorker">Train Worker (50 minerals)</button>
+      <button id="summonTroops">Summon Troops (100 minerals)</button>
+      <button id="gotoEnemyBase">Go to Enemy Base</button>
+    </div>
+  </div>
+  
+  <!-- 게임 캔버스 -->
+  <canvas id="gameCanvas"></canvas>
+  
+  <script>
+    // ★ 게임 월드 및 카메라 설정 ★
+    const gameWorldWidth = 2000;
+    const gameWorldHeight = 2000;
+    let camera = { x: gameWorldWidth / 2, y: gameWorldHeight / 2 };
+    
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    let minerals = 500;
+    document.getElementById('minerals').textContent = minerals;
+    
+    // ★ 화면-월드 좌표 변환 함수 ★
+    function worldToScreen(x, y) {
+      return { 
+        x: x - camera.x + canvas.width / 2, 
+        y: y - camera.y + canvas.height / 2 
+      };
+    }
+    function screenToWorld(x, y) {
+      return { 
+        x: camera.x - canvas.width / 2 + x, 
+        y: camera.y - canvas.height / 2 + y 
+      };
+    }
+    
+    // ★ 게임 객체 배열 ★
+    const friendlyUnits = [];
+    const enemyUnits = [];
+    const buildings = [];   // 플레이어 건물(Command Center)과 적 기지(Enemy Base)
+    const resourceDeposits = [];
+    
+    // 모드: "normal" / "build"
+    let mode = 'normal';
+    let buildingTypeToPlace = null;
+    
+    // 선택 영역 관련 변수
+    let isSelecting = false;
+    let selectionStart = { x: 0, y: 0 };
+    let selectionRect = { x: 0, y: 0, w: 0, h: 0 };
+    let mousePos = { x: 0, y: 0 };
+    
+    // ★ 클래스 정의 ★
+    class Unit {
+      constructor(x, y, type = 'marine') {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.selected = false;
+        this.type = type;
+        // 모든 유닛은 이동 목표(target)를 갖습니다.
+        this.target = { x: x, y: y };
+        // 공격 유닛은 fixedTarget을 설정하면 초기 목표 유지
+        this.fixedTarget = false;
+        
+        if (type === 'marine') {
+          this.speed = 1.5;
+          this.health = 100;
+          this.attackDamage = 10;
+          this.attackRange = 40;
+          this.attackCooldown = 1000; // ms 단위
+          this.lastAttackTime = 0;
+          this.color = 'blue';
+        } else if (type === 'worker') {
+          this.speed = 1.2;
+          this.health = 80;
+          this.attackDamage = 5;
+          this.attackRange = 30;
+          this.attackCooldown = 1200;
+          this.lastAttackTime = 0;
+          this.color = 'green';
+          // 워커 전용 속성: 상태, 현재 운반 중인 자원, 지정 deposit
+          this.state = "harvesting"; // harvesting, returning, idle
+          this.carrying = 0;
+          this.harvestTarget = null;
+        }
+      }
+      
+      update(deltaTime) {
+        if (this.type === 'worker') {
+          // 워커가 아직 harvestTarget이 없으면 가까운 deposit 지정
+          if (!this.harvestTarget && resourceDeposits.length > 0) {
+            this.harvestTarget = resourceDeposits.reduce((prev, curr) => {
+              return (Math.hypot(this.x - prev.x, this.y - prev.y) < Math.hypot(this.x - curr.x, this.y - curr.y)) ? prev : curr;
+            });
+          }
+          
+          // 상태에 따른 동작 처리
+          if (this.state === "harvesting" && this.harvestTarget) {
+            // deposit 위치로 이동
+            this.target = { x: this.harvestTarget.x, y: this.harvestTarget.y };
+            // deposit에 도착하면 (거리 5 이하)
+            if (Math.hypot(this.x - this.harvestTarget.x, this.y - this.harvestTarget.y) < 5) {
+              // 한 번에 20개씩 채취 (deposit 남은 양 고려)
+              let gathered = Math.min(20, this.harvestTarget.amount);
+              this.carrying = gathered;
+              this.harvestTarget.amount -= gathered;
+              // deposit 고갈 시 제거 및 새 목표 지정
+              if (this.harvestTarget.amount <= 0) {
+                let index = resourceDeposits.indexOf(this.harvestTarget);
+                if (index > -1) resourceDeposits.splice(index, 1);
+                this.harvestTarget = resourceDeposits.length > 0 ? resourceDeposits[0] : null;
+              }
+              // 채취 후 상태 전환: Command Center로 돌아가기
+              this.state = "returning";
+              let cc = buildings.find(b => b.type === "commandCenter");
+              if (cc) {
+                this.target = { x: cc.x, y: cc.y };
+              }
+            }
+          } else if (this.state === "returning") {
+            let cc = buildings.find(b => b.type === "commandCenter");
+            if (cc) {
+              this.target = { x: cc.x, y: cc.y };
+              // Command Center에 도착하면 자원 예치 후 harvesting 상태로 전환
+              if (Math.hypot(this.x - cc.x, this.y - cc.y) < 5) {
+                minerals += this.carrying;
+                document.getElementById('minerals').textContent = minerals;
+                this.carrying = 0;
+                this.state = "harvesting";
+                if (this.harvestTarget) {
+                  this.target = { x: this.harvestTarget.x, y: this.harvestTarget.y };
+                }
+              }
+            } else {
+              // Command Center가 없으면 harvesting으로 상태 전환
+              this.state = "harvesting";
+            }
+          }
+          // 기본 이동: target 방향으로 선형 이동
+          const dx = this.target.x - this.x;
+          const dy = this.target.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 1) {
+            this.x += (dx / dist) * this.speed;
+            this.y += (dy / dist) * this.speed;
+          }
+        } else {
+          // 워커가 아닌 유닛(예: marine)
+          const dx = this.target.x - this.x;
+          const dy = this.target.y - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 1) {
+            this.x += (dx / dist) * this.speed;
+            this.y += (dy / dist) * this.speed;
+          }
+          // 마린의 공격 로직: 근접한 적군에게 공격
+          if (this.type === 'marine') {
+            for (let enemy of enemyUnits) {
+              const edx = enemy.x - this.x;
+              const edy = enemy.y - this.y;
+              const edist = Math.sqrt(edx * edx + edy * edy);
+              if (edist < this.attackRange && Date.now() - this.lastAttackTime > this.attackCooldown) {
+                enemy.health -= this.attackDamage;
+                this.lastAttackTime = Date.now();
+                if (enemy.health <= 0) {
+                  const index = enemyUnits.indexOf(enemy);
+                  if (index > -1) enemyUnits.splice(index, 1);
+                }
+                break;
+              }
+            }
+            // 마린이 적과 충돌하면 즉시 제거
+            for (let i = enemyUnits.length - 1; i >= 0; i--) {
+              let enemy = enemyUnits[i];
+              const collisionDistance = this.radius + enemy.radius;
+              if (Math.hypot(this.x - enemy.x, this.y - enemy.y) < collisionDistance) {
+                enemyUnits.splice(i, 1);
+              }
+            }
+          }
+        }
+      }
+      
+      draw(ctx) {
+        const screenPos = worldToScreen(this.x, this.y);
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, this.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = this.selected ? 'yellow' : this.color;
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.stroke();
+        // 체력바 표시
+        ctx.fillStyle = "green";
+        const barWidth = this.radius * 2;
+        ctx.fillRect(screenPos.x - this.radius, screenPos.y - this.radius - 10, (this.health / 100) * barWidth, 5);
+      }
+    }
+    
+    class Building {
+      constructor(x, y, type = 'commandCenter') {
+        this.x = x;
+        this.y = y;
+        this.width = 40;
+        this.height = 40;
+        this.type = type;
+        if (type === 'commandCenter' || type === 'enemyBase') {
+          this.health = 1000;
+        }
+      }
+      draw(ctx) {
+        const screenPos = worldToScreen(this.x, this.y);
+        if (this.type === 'commandCenter') {
+          ctx.fillStyle = 'gray';
+        } else if (this.type === 'enemyBase') {
+          ctx.fillStyle = 'darkred';
+        }
+        ctx.fillRect(screenPos.x - this.width / 2, screenPos.y - this.height / 2, this.width, this.height);
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(screenPos.x - this.width / 2, screenPos.y - this.height / 2, this.width, this.height);
+        ctx.fillStyle = 'white';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.type === 'commandCenter' ? 'CC' : 'EB', screenPos.x, screenPos.y + 4);
+      }
+    }
+    
+    class ResourceDeposit {
+      constructor(x, y, type = 'gem') {
+        this.x = x;
+        this.y = y;
+        this.radius = 15;
+        this.amount = 200;  // deposit에 있는 총 자원량
+        this.type = type;
+      }
+      draw(ctx) {
+        const screenPos = worldToScreen(this.x, this.y);
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'purple';
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.stroke();
+      }
+    }
+    
+    // ★ 초기 객체 생성 ★
+    // 플레이어 아군: 게임 월드 중앙에 마린 1기를 소환
+    friendlyUnits.push(new Unit(gameWorldWidth / 2, gameWorldHeight / 2, 'marine'));
+    // 적 기지: 미리 배치된 Enemy Base (예: 1800, 1800)
+    buildings.push(new Building(1800, 1800, 'enemyBase'));
+    // 플레이어 기지는 HUD 버튼을 통해 건설할 수 있음.
+    
+    // ★ 함수: Train Marine (50 minerals) ★
+    function trainMarine() {
+      if (minerals >= 50) {
+        minerals -= 50;
+        document.getElementById('minerals').textContent = minerals;
+        const cc = buildings.find(b => b.type === 'commandCenter');
+        if (cc) {
+          friendlyUnits.push(new Unit(cc.x + Math.random() * 30 - 15, cc.y + Math.random() * 30 - 15, 'marine'));
+        } else {
+          friendlyUnits.push(new Unit(gameWorldWidth / 2, gameWorldHeight / 2, 'marine'));
+        }
+      }
+    }
+    
+    // ★ 함수: Train Worker (50 minerals) ★
+    function trainWorker() {
+      if (minerals >= 50) {
+        minerals -= 50;
+        document.getElementById('minerals').textContent = minerals;
+        const cc = buildings.find(b => b.type === 'commandCenter');
+        if (cc) {
+          friendlyUnits.push(new Unit(cc.x + Math.random() * 30 - 15, cc.y + Math.random() * 30 - 15, 'worker'));
+        } else {
+          friendlyUnits.push(new Unit(gameWorldWidth / 2, gameWorldHeight / 2, 'worker'));
+        }
+      }
+    }
+    
+    // ★ 함수: Summon Troops (100 minerals) ★  
+    // 소환 시 플레이어 기지(또는 중앙) 근처에서 3마리 마린을 생성하며, 적 기지를 향해 이동
+    function summonTroops() {
+      if (minerals >= 100) {
+        minerals -= 100;
+        document.getElementById('minerals').textContent = minerals;
+        let spawnX, spawnY;
+        const cc = buildings.find(b => b.type === 'commandCenter');
+        if (cc) {
+          spawnX = cc.x;
+          spawnY = cc.y;
+        } else {
+          spawnX = gameWorldWidth / 2;
+          spawnY = gameWorldHeight / 2;
+        }
+        const enemyBase = buildings.find(b => b.type === 'enemyBase');
+        for (let i = 0; i < 3; i++) {
+          let unit = new Unit(spawnX + Math.random() * 30 - 15, spawnY + Math.random() * 30 - 15, 'marine');
+          if (enemyBase) {
+            unit.target = { x: enemyBase.x, y: enemyBase.y };
+          }
+          friendlyUnits.push(unit);
+        }
+      }
+    }
+    
+    // ★ 일반 적 스폰: 2초마다 3마리 소환 ★
+    function spawnEnemy() {
+      const x = Math.random() < 0.5 ? Math.random() * 50 : gameWorldWidth - Math.random() * 50;
+      const y = Math.random() < 0.5 ? Math.random() * 50 : gameWorldHeight - Math.random() * 50;
+      let enemy = new Unit(x, y, 'marine');
+      enemy.speed = 1;
+      enemy.color = 'red';
+      enemy.health = 100;
+      enemy.attackDamage = 10;
+      enemy.attackRange = 40;
+      enemy.attackCooldown = 1500;
+      enemy.lastAttackTime = Date.now();
+      enemy.fixedTarget = false;
+      enemyUnits.push(enemy);
+    }
+    setInterval(() => {
+      for (let i = 0; i < 3; i++) {
+        spawnEnemy();
+      }
+    }, 2000);
+    
+    // ★ 적 웨이브 공격: 10초마다 적 기지에서 3마리 소환 ★
+    function enemyWaveAttack() {
+      const enemyBase = buildings.find(b => b.type === 'enemyBase');
+      if (enemyBase) {
+        const playerBase = buildings.find(b => b.type === 'commandCenter');
+        for (let i = 0; i < 3; i++) {
+          let enemy = new Unit(enemyBase.x + Math.random() * 30 - 15, enemyBase.y + Math.random() * 30 - 15, 'marine');
+          enemy.speed = 1.2;
+          enemy.color = 'red';
+          enemy.health = 100;
+          enemy.attackDamage = 10;
+          enemy.attackRange = 40;
+          enemy.attackCooldown = 1500;
+          enemy.lastAttackTime = Date.now();
+          if (playerBase) {
+            enemy.target = { x: playerBase.x, y: playerBase.y };
+            enemy.fixedTarget = true;
+          }
+          enemyUnits.push(enemy);
+        }
+      }
+    }
+    setInterval(enemyWaveAttack, 10000);
+    
+    // ★ 보석 미네랄 초기 배치 ★
+    function initDeposits() {
+      // 랜덤 배치 deposit 5개
+      for (let i = 0; i < 5; i++) {
+        let x = Math.random() * (gameWorldWidth - 200) + 100;
+        let y = Math.random() * (gameWorldHeight - 200) + 100;
+        resourceDeposits.push(new ResourceDeposit(x, y, 'gem'));
+      }
+      // 적 기지 주변 (예: 1800, 1800 부근)
+      const baseX = 1800, baseY = 1800;
+      resourceDeposits.push(new ResourceDeposit(baseX - 50, baseY - 50, 'gem'));
+      resourceDeposits.push(new ResourceDeposit(baseX + 50, baseY - 50, 'gem'));
+      resourceDeposits.push(new ResourceDeposit(baseX - 50, baseY + 50, 'gem'));
+      resourceDeposits.push(new ResourceDeposit(baseX + 50, baseY + 50, 'gem'));
+    }
+    initDeposits();
+    
+    function updateSelectedCount() {
+      const count = friendlyUnits.filter(u => u.selected).length;
+      document.getElementById('selectedCount').textContent = count;
+    }
+    
+    // ★ 마우스 이벤트 처리 ★
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mousePos.x = e.clientX - rect.left;
+      mousePos.y = e.clientY - rect.top;
+      
+      // 미니맵 영역 (우측 하단: 200×150) 검사
+      const minimapWidth = 200, minimapHeight = 150;
+      const mapX = canvas.width - minimapWidth - 10, mapY = canvas.height - minimapHeight - 10;
+      if (mousePos.x >= mapX && mousePos.x <= mapX + minimapWidth &&
+          mousePos.y >= mapY && mousePos.y <= mapY + minimapHeight) {
+        const worldX = ((mousePos.x - mapX) / minimapWidth) * gameWorldWidth;
+        const worldY = ((mousePos.y - mapY) / minimapHeight) * gameWorldHeight;
+        camera.x = worldX;
+        camera.y = worldY;
+        return; // 미니맵 클릭이면 이후 처리 중단
+      }
+      
+      // 건물 배치 모드일 때
+      if (mode === 'build' && buildingTypeToPlace !== null) {
+        const worldPos = screenToWorld(mousePos.x, mousePos.y);
+        if (buildingTypeToPlace === 'commandCenter' && minerals >= 400) {
+          minerals -= 400;
+          document.getElementById('minerals').textContent = minerals;
+          buildings.push(new Building(worldPos.x, worldPos.y, 'commandCenter'));
+          mode = 'normal';
+          buildingTypeToPlace = null;
+        }
+        return;
+      } else {
+        // 좌클릭: 선택 영역 시작
+        if (e.button === 0) {
+          isSelecting = true;
+          selectionStart = { x: mousePos.x, y: mousePos.y };
+          selectionRect = { x: mousePos.x, y: mousePos.y, w: 0, h: 0 };
+        }
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mousePos.x = e.clientX - rect.left;
+      mousePos.y = e.clientY - rect.top;
+      if (isSelecting) {
+        selectionRect.w = mousePos.x - selectionStart.x;
+        selectionRect.h = mousePos.y - selectionStart.y;
+      }
+    });
+    
+    canvas.addEventListener('mouseup', (e) => {
+      if (isSelecting && e.button === 0) {
+        friendlyUnits.forEach(unit => {
+          const screenPos = worldToScreen(unit.x, unit.y);
+          const xMin = Math.min(selectionStart.x, selectionStart.x + selectionRect.w);
+          const xMax = Math.max(selectionStart.x, selectionStart.x + selectionRect.w);
+          const yMin = Math.min(selectionStart.y, selectionStart.y + selectionRect.h);
+          const yMax = Math.max(selectionStart.y, selectionStart.y + selectionRect.h);
+          unit.selected = (screenPos.x >= xMin && screenPos.x <= xMax && screenPos.y >= yMin && screenPos.y <= yMax);
+        });
+        updateSelectedCount();
+        isSelecting = false;
+      }
+      // 우클릭: 선택된 유닛에게 이동 또는 공격 명령 전달
+      if (e.button === 2) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+        const targetWorld = screenToWorld(clickX, clickY);
+        const targetEnemy = enemyUnits.find(enemy => {
+          const dx = enemy.x - targetWorld.x;
+          const dy = enemy.y - targetWorld.y;
+          return Math.sqrt(dx * dx + dy * dy) < enemy.radius;
+        });
+        if (targetEnemy) {
+          friendlyUnits.forEach(unit => {
+            if (unit.selected) {
+              unit.target = { x: targetEnemy.x, y: targetEnemy.y };
+            }
+          });
+        } else {
+          friendlyUnits.forEach(unit => {
+            if (unit.selected) {
+              unit.target = { x: targetWorld.x, y: targetWorld.y };
+            }
+          });
+        }
+      }
+    });
+    
+    // 우클릭 기본 메뉴 비활성화
+    canvas.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+    
+    // ★ HUD 버튼 이벤트 ★
+    document.getElementById('buildCommand-center').addEventListener('click', () => {
+      mode = 'build';
+      buildingTypeToPlace = 'commandCenter';
+    });
+    document.getElementById('trainMarine').addEventListener('click', trainMarine);
+    document.getElementById('trainWorker').addEventListener('click', trainWorker);
+    document.getElementById('summonTroops').addEventListener('click', summonTroops);
+    document.getElementById('gotoEnemyBase').addEventListener('click', () => {
+      const enemyBase = buildings.find(b => b.type === 'enemyBase');
+      if (enemyBase) {
+        camera.x = enemyBase.x;
+        camera.y = enemyBase.y;
+      }
+    });
+    
+    // ★ 게임 루프 ★
+    let lastTime = Date.now();
+    function gameLoop() {
+      const now = Date.now();
+      const deltaTime = now - lastTime;
+      lastTime = now;
+      update(deltaTime);
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+    
+    function update(deltaTime) {
+      friendlyUnits.forEach(unit => unit.update(deltaTime));
+      enemyUnits.forEach(unit => {
+        unit.update(deltaTime);
+        // fixedTarget이 아닌 경우, 가장 가까운 아군 유닛을 대상으로 함
+        if (!unit.fixedTarget && friendlyUnits.length > 0) {
+          const nearest = friendlyUnits.reduce((prev, curr) => {
+            const dPrev = Math.hypot(prev.x - unit.x, prev.y - unit.y);
+            const dCurr = Math.hypot(curr.x - unit.x, curr.y - unit.y);
+            return dCurr < dPrev ? curr : prev;
+          });
+          unit.target = { x: nearest.x, y: nearest.y };
+        }
+      });
+    }
+    
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // ★ 게임 월드 배경 ★: 격자가 보이는 녹색 배경
+      ctx.fillStyle = "#556B2F";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const left = camera.x - canvas.width / 2;
+      const top = camera.y - canvas.height / 2;
+      ctx.strokeStyle = "rgba(255,255,255,0.1)";
+      for (let x = Math.floor(left / 100) * 100; x < left + canvas.width; x += 100) {
+        const screenX = worldToScreen(x, 0).x;
+        ctx.beginPath();
+        ctx.moveTo(screenX, 0);
+        ctx.lineTo(screenX, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = Math.floor(top / 100) * 100; y < top + canvas.height; y += 100) {
+        const screenY = worldToScreen(0, y).y;
+        ctx.beginPath();
+        ctx.moveTo(0, screenY);
+        ctx.lineTo(canvas.width, screenY);
+        ctx.stroke();
+      }
+      
+      resourceDeposits.forEach(deposit => deposit.draw(ctx));
+      buildings.forEach(building => building.draw(ctx));
+      
+      enemyUnits.forEach(unit => {
+        const screenPos = worldToScreen(unit.x, unit.y);
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, unit.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = 'red';
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.stroke();
+        ctx.fillStyle = 'green';
+        const barWidth = unit.radius * 2;
+        ctx.fillRect(screenPos.x - unit.radius,
+                     screenPos.y - unit.radius - 10,
+                     (unit.health / 100) * barWidth, 5);
+      });
+      
+      friendlyUnits.forEach(unit => unit.draw(ctx));
+      
+      if (isSelecting) {
+        ctx.strokeStyle = 'yellow';
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(selectionStart.x, selectionStart.y, selectionRect.w, selectionRect.h);
+        ctx.setLineDash([]);
+      }
+      
+      // ★ 미니맵 그리기 (우측 하단) ★
+      const minimapWidth = 200, minimapHeight = 150;
+      const mapX = canvas.width - minimapWidth - 10, mapY = canvas.height - minimapHeight - 10;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(mapX, mapY, minimapWidth, minimapHeight);
+      function drawMinimapPoint(x, y, color, size = 3) {
+        const miniX = mapX + (x / gameWorldWidth) * minimapWidth;
+        const miniY = mapY + (y / gameWorldHeight) * minimapHeight;
+        ctx.beginPath();
+        ctx.arc(miniX, miniY, size, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+      friendlyUnits.forEach(unit => drawMinimapPoint(unit.x, unit.y, 'blue'));
+      enemyUnits.forEach(unit => drawMinimapPoint(unit.x, unit.y, 'red'));
+      buildings.forEach(building => {
+        const color = (building.type === 'commandCenter') ? 'gray' : 'darkred';
+        const miniX = mapX + (building.x / gameWorldWidth) * minimapWidth;
+        const miniY = mapY + (building.y / gameWorldHeight) * minimapHeight;
+        ctx.fillStyle = color;
+        ctx.fillRect(miniX - 2, miniY - 2, 4, 4);
+      });
+      resourceDeposits.forEach(deposit => drawMinimapPoint(deposit.x, deposit.y, 'purple', 4));
+      
+      const viewLeft = camera.x - canvas.width / 2;
+      const viewTop = camera.y - canvas.height / 2;
+      const viewWidth = canvas.width;
+      const viewHeight = canvas.height;
+      const miniViewX = mapX + (viewLeft / gameWorldWidth) * minimapWidth;
+      const miniViewY = mapY + (viewTop / gameWorldHeight) * minimapHeight;
+      const miniViewW = (viewWidth / gameWorldWidth) * minimapWidth;
+      const miniViewH = (viewHeight / gameWorldHeight) * minimapHeight;
+      ctx.strokeStyle = 'yellow';
+      ctx.strokeRect(miniViewX, miniViewY, miniViewW, miniViewH);
+    }
+    
+    gameLoop();
+    
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
