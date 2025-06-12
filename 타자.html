@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>타자</title>
+  <link rel="icon" type="image/png" href="https://ifh.cc/g/R3rRdB.png">
+  <style>
+    /* ... 기존 스타일 복사 ... */
+    /* 아래 스타일 추가 및 일부 수정 */
+    #goal-setting, #user-sentences, #share-result {
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 6px;
+      background: #e0f7fa;
+    }
+    #goal-setting input, #user-sentences input, #user-sentences textarea {
+      margin: 0 5px 10px 0;
+    }
+    #pause-btn, #resume-btn {
+      background: #fbc02d;
+      color: #263238;
+      margin-right: 5px;
+    }
+    #pause-btn:hover, #resume-btn:hover {
+      background: #ffd600;
+    }
+    #sentence-info {
+      text-align: right;
+      margin-bottom: 5px;
+      color: #4caf50;
+    }
+    .record-detail {
+      background: #fffde7;
+      border: 1px solid #fbc02d;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-size: 15px;
+      display: none;
+      position: relative;
+      z-index: 10;
+    }
+    .record-detail.show { display: block; }
+    #share-result button {
+      background: #42a5f5;
+      color: #fff;
+      margin-right: 5px;
+    }
+    #share-result button:hover {
+      background: #1565c0;
+    }
+    @media (max-width: 600px) {
+      #container { padding: 5px; }
+      #sample-text { font-size: 16px !important; }
+      #goal-setting, #user-sentences, #share-result { font-size: 13px; }
+    }
+    body.dark {
+      background: #263238 !important;
+      color: #ECEFF1 !important;
+    }
+    #container.dark {
+      background: #37474F !important;
+      color: #ECEFF1 !important;
+    }
+    #sample-text.dark {
+      background: #455a64 !important;
+      color: #ECEFF1 !important;
+    }
+    #progress-container.dark {
+      background-color: #546e7a !important;
+    }
+    #progress-bar.dark {
+      background-color: #388e3c !important;
+    }
+    #typing-area.dark {
+      background: #263238 !important;
+      color: #ECEFF1 !important;
+      border-color: #90caf9 !important;
+    }
+    button.dark, #toggle-mode.dark {
+      background-color: #388e3c !important;
+      color: #ECEFF1 !important;
+    }
+    #leaderboard.dark, #history.dark, #chart-container.dark {
+      color: #ECEFF1 !important;
+    }
+  </style>
+</head>
+<body>
+  <button id="toggle-mode">다크 모드</button>
+  <div id="container">
+    <h1>타자연습 무료 사이트</h1>
+    <div id="goal-setting">
+      <b>목표 설정:</b>
+      <label>목표 WPM <input type="number" id="goal-wpm" min="10" max="500" placeholder="예: 200"></label>
+      <label>목표 정확도(%) <input type="number" id="goal-accuracy" min="50" max="100" placeholder="예: 97"></label>
+    </div>
+    <div id="user-sentences">
+      <b>직접 문장 추가:</b>
+      <textarea id="custom-sentences" rows="2" cols="60" placeholder="한 줄에 하나씩 입력"></textarea>
+      <button id="add-sentences-btn">문장 추가</button>
+    </div>
+    <div id="settings">
+      <div>
+        <label for="mode-select">모드 선택:</label>
+        <select id="mode-select">
+          <option value="unlimited" selected>무제한 모드</option>
+          <option value="timed">시간 제한 (60초)</option>
+          <option value="error-limit">오류 제한 (3오류)</option>
+        </select>
+      </div>
+      <div>
+        <label for="difficulty-select">난이도 선택:</label>
+        <select id="difficulty-select">
+          <option value="easy" selected>쉬움</option>
+          <option value="medium">보통</option>
+          <option value="hard">어려움</option>
+        </select>
+      </div>
+      <div>
+        <label for="font-size">폰트 크기:</label>
+        <select id="font-size">
+          <option value="small">작게</option>
+          <option value="medium" selected>보통</option>
+          <option value="large">크게</option>
+        </select>
+      </div>
+    </div>
+    <div id="sentence-info"></div>
+    <div id="sample-text"></div>
+    <div id="progress-container">
+      <div id="progress-bar">0%</div>
+    </div>
+    <textarea id="typing-area" placeholder="여기에 타자를 입력하세요..."></textarea>
+    <div>
+      <button id="pause-btn">⏸️ 일시정지</button>
+      <button id="resume-btn" style="display:none;">▶️ 재개</button>
+    </div>
+    <div id="stats">
+      <span id="timer">시간: 0초</span>
+      <span id="wpm">WPM: 0</span>
+      <span id="accuracy">정확도: 100%</span>
+      <span id="error-count">오류: 0</span>
+    </div>
+    <button id="reset-btn">새로운 도전</button>
+    <button id="export-btn">CSV 내보내기</button>
+    <div id="share-result">
+      <b>결과 공유: </b>
+      <button id="copy-result-btn">클립보드 복사</button>
+      <button id="kakao-share-btn">카카오톡</button>
+      <button id="twitter-share-btn">트위터</button>
+    </div>
+    <div id="leaderboard">
+      <h3>리더보드 (최고 WPM)</h3>
+      <ul id="leaderboard-list"></ul>
+    </div>
+    <div id="chart-container">
+      <h3>연습 기록 차트</h3>
+      <canvas id="history-chart" width="400" height="200"></canvas>
+    </div>
+    <div id="history">
+      <h3>최근 기록 (클릭하면 상세)</h3>
+      <ul id="history-list"></ul>
+    </div>
+    <div class="record-detail" id="record-detail"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // 우클릭(컨텍스트 메뉴) 막기
+    document.addEventListener("contextmenu", function(e) {
+      e.preventDefault();
+      alert("우클릭(복사/붙여넣기 등)이 제한되었습니다.");
+    });
+
+    // 모바일 터치에서 길게 누르기 복붙 막기
+    document.addEventListener("selectstart", function(e) { e.preventDefault(); });
+    document.addEventListener("dragstart", function(e) { e.preventDefault(); });
+
+    // 문장 목록 확장
+    const allSentences = [
+      "오늘 아침 공기는 상쾌하다.",
+      "따스한 햇살이 창문을 비춘다.",
+      "커피 한 잔의 여유를 즐겨보자.",
+      "바쁜 하루 속에서도 작은 쉼표가 필요하다.",
+      "책 한 권과 따뜻한 차가 최고의 조합이다.",
+      "자연은 언제나 우리에게 영감을 준다.",
+      "친구와의 대화는 마음의 에너지를 충전시킨다.",
+      "도전은 새로운 가능성의 시작이다.",
+      "꿈은 노력하는 사람의 발걸음을 이끈다.",
+      "작은 변화가 큰 결과를 만든다.",
+      "행복은 스스로 만들어 가는 것이다.",
+      "웃음은 마음을 치유하는 마법이다.",
+      "시간은 누구에게나 공평하게 주어진다.",
+      "진정한 우정은 오랜 시간이 지나도 변하지 않는다.",
+      "학습은 평생 동안 계속되어야 한다.",
+      "자신감을 가지고 도전에 임하라.",
+      "오늘은 내일보다 더 특별한 날이다.",
+      "긍정적인 생각이 인생을 바꾼다.",
+      "성공은 준비된 자에게 찾아온다.",
+      "노력은 결코 배신하지 않는다.",
+      "실패는 성공을 위한 발판이다.",
+      "끊임없는 열정이 최고의 성과를 이끈다.",
+      "용기는 두려움을 이기는 힘이다.",
+      "매일 반복되는 일상 속에도 소중한 순간이 있다.",
+      "희망은 어둠 속에서 빛나는 별이다.",
+      "도전 정신은 미래를 열어준다.",
+      "작은 성취가 큰 자신감을 불러온다.",
+      "꾸준한 연습은 반드시 결실을 맺는다.",
+      "현재의 노력이 내일의 꿈을 현실로 만든다.",
+      "자신의 한계를 넘어서기 위해 노력하라.",
+      "매 순간 최선을 다하는 것이 중요하다.",
+      "인내는 승리의 열쇠이다.",
+      "배움에는 끝이 없다.",
+      "새로운 시작은 언제나 설렘으로 가득하다.",
+      "변화는 도전을 두려워하지 않은 자의 것이다.",
+      "함께라면 어려움도 이겨낼 수 있다.",
+      "열린 마음이 새로운 기회를 만든다.",
+      "자연의 소리에 귀 기울여 보자.",
+      "조용한 아침 산책은 마음의 안식을 준다.",
+      "별을 바라보며 꿈을 꾸자.",
+      "매일 조금씩 발전하는 나를 느낀다.",
+      "노력이 쌓이면 큰 성과를 이룬다.",
+      "정직함은 최고의 미덕이다.",
+      "사랑은 모든 것을 극복한다.",
+      "작은 친절이 큰 기적을 만든다.",
+      "의지력이 강한 사람은 반드시 성공한다.",
+      "매 순간을 소중히 여기자.",
+      "시간은 우리 모두에게 주어진 귀한 자원이다.",
+      "서로의 다름을 인정하는 것이 성숙이다.",
+      "자연을 보호하는 것은 우리의 책임이다.",
+      "과거는 배움의 원천이다.",
+      "오늘의 노력은 내일의 보상이다.",
+      "노력과 끈기는 최고의 동반자이다.",
+      "긍정적인 에너지가 주변을 밝혀준다.",
+      "작은 목표가 큰 꿈으로 이어진다.",
+      "미래는 현명하게 준비한 사람의 것이다.",
+      "배움에 대한 열정은 마음의 불씨이다.",
+      "시간을 소중히 여기며 생활하자.",
+      "희망은 모든 어려움을 극복하게 해준다.",
+      "매일 아침 새로운 기회가 주어진다.",
+      "열심히 일한 보람을 느껴보자.",
+      "자신만의 길을 걸으며 꿈을 향해 나아가자.",
+      "성공은 작은 습관의 반복이다.",
+      "자연의 아름다움에 감탄하며 살아가자.",
+      "모든 순간이 인생의 귀중한 기록이다.",
+      "내일은 오늘보다 더 빛날 것이다.",
+      "마음의 여유를 가지며 살아가자.",
+      "작은 용기가 큰 변화를 만든다.",
+      "서로를 존중하는 사회가 되자.",
+      "좋은 습관은 인생을 바꾼다.",
+      "실패를 두려워하지 말고 도전하라.",
+      "노력은 때로 힘들지만 결코 헛되지 않다.",
+      "배움의 기쁨을 느껴보자.",
+      "자신을 믿는 마음이 중요하다.",
+      "새로운 것을 배우는 데 주저하지 말자.",
+      "꾸준함이 곧 실력이다.",
+      "작은 관심이 큰 변화를 만든다.",
+      "포기는 가장 쉬운 선택이다.",
+      "도전은 언제나 두렵지만 가치 있다.",
+      "실패에서 배운 교훈은 평생 간다.",
+      "자연과 함께하는 시간이 소중하다.",
+      "건강은 모든 것의 바탕이다.",
+      "감사는 행복의 시작이다.",
+      "매일의 기록이 인생을 만든다.",
+      "즐겁게 배우면 더 잘 기억된다.",
+      "성공보다 성장에 집중하자.",
+      "타인의 입장을 이해하려 노력하자.",
+      "아무리 힘들어도 웃음을 잃지 말자.",
+      "자신을 사랑하는 것이 중요하다.",
+      "도전 없는 삶은 무미건조하다.",
+      "성공은 준비된 자만이 누릴 수 있다.",
+      "가족과 친구는 소중한 존재다.",
+      "좋은 하루는 좋은 아침에서 시작된다.",
+      "경청은 존중의 시작이다.",
+      "감정도 관리가 필요하다.",
+      "목표가 명확하면 길을 잃지 않는다.",
+      "실수를 두려워하지 말자.",
+      "끈기가 곧 실력이다.",
+      "작은 성공을 축하하자.",
+      "끝없는 배움이 인생을 풍요롭게 한다.",
+      "미래는 오늘의 선택에 달려 있다.",
+      "오늘 하루도 수고했다.",
+      "자신을 칭찬하는 습관을 가지자.",
+      "실패는 도전의 또 다른 이름이다.",
+      "용서하는 마음이 필요하다.",
+      "시간은 누구도 기다려주지 않는다.",
+      "노력의 흔적은 반드시 남는다.",
+      "새로운 날, 새로운 도전이 기다린다.",
+      "자신과의 약속을 지키자.",
+      "생각을 행동으로 옮기자.",
+      "마음이 따뜻해지는 하루가 되길.",
+      "습관은 의지보다 강하다.",
+      "오늘의 작은 실천이 미래를 바꾼다.",
+      "자연의 아름다움을 느껴보자.",
+      "매일 성장하는 자신을 응원하자.",
+      "다른 사람의 장점을 배워보자.",
+      "함께라면 두려울 것이 없다.",
+      "성공은 포기하지 않는 자의 것이다.",
+      "내일의 나는 오늘의 나를 뛰어넘는다.",
+      "즐겁게 사는 것이 최고의 지혜다.",
+      "진심은 언젠가 통한다.",
+      "자신의 감정을 솔직하게 표현하자.",
+      "실패를 두려워하지 말고 계속 도전하자.",
+      "매일 아침 긍정의 말로 시작하자.",
+      "마음을 열면 세상이 달라진다.",
+      "감정의 기복도 삶의 일부다.",
+      "오늘 할 일을 내일로 미루지 말자.",
+      "끊임없이 꿈을 꾸자.",
+      "작은 성취에 감사하자.",
+      "자연에서 휴식을 찾자.",
+      "배움에는 나이가 없다.",
+      "마음의 평화를 소중히 여기자.",
+      "실패는 더 나은 성공을 위한 발판이다.",
+      "오늘도 힘내자!",
+      "새로운 만남은 새로운 기회를 만든다.",
+      "즐겁게 도전하고 성장하자.",
+      "봄꽃이 만개한 거리를 산책했다.",
+      "시원한 바람이 얼굴을 스친다.",
+      "푸른 하늘을 바라보며 심호흡을 해보자.",
+      "창밖으로 들리는 새소리가 정겹다.",
+      "저녁노을이 붉게 물들어 간다.",
+      "바다의 파도 소리가 마음을 평온하게 만든다.",
+      "여름밤 반딧불을 따라 산책을 했다.",
+      "겨울에는 따뜻한 코코아 한 잔이 최고다.",
+      "가을 낙엽이 바람에 흩날린다.",
+      "첫눈이 내리던 그날을 기억한다.",
+      "도서관에서 집중해서 책을 읽었다.",
+      "운동을 마치고 상쾌한 기분을 느꼈다.",
+      "친구와 함께 여행을 계획했다.",
+      "산 정상에서 내려다본 경치가 멋졌다.",
+      "비 오는 날 창가에 앉아 음악을 들었다.",
+      "햇살 좋은 날 공원에서 산책했다.",
+      "강아지와 함께 뛰노는 시간이 행복하다.",
+      "고양이의 부드러운 털을 쓰다듬었다.",
+      "가족과 함께 즐거운 저녁 식사를 했다.",
+      "맛있는 디저트를 먹으며 기분이 좋아졌다.",
+      "영화를 보며 감동의 눈물을 흘렸다.",
+      "좋은 음악은 마음을 위로해준다.",
+      "자전거를 타고 한강을 달렸다.",
+      "도심 속 작은 공원이 쉼터가 되었다.",
+      "캠핑장에서 밤하늘의 별을 감상했다.",
+      "새벽 공기가 무척 차가웠다.",
+      "아침 운동으로 활기찬 하루를 시작했다.",
+      "책상 정리를 하니 마음도 정돈된다.",
+      "좋은 향기가 방 안에 가득 퍼졌다.",
+      "초록빛 잎사귀가 눈을 시원하게 해준다.",
+      "시골길을 따라 걷다 보니 마음이 편안해졌다.",
+      "온라인 강의를 들으며 새로운 것을 배웠다.",
+      "친구에게 따뜻한 메시지를 보냈다.",
+      "좋은 글귀를 노트에 적어두었다.",
+      "햇살 아래 피크닉을 즐겼다.",
+      "생일을 맞아 축하 전화를 받았다.",
+      "커다란 나무 그늘 아래서 쉬었다.",
+      "꽃집에서 예쁜 꽃다발을 골랐다.",
+      "아이스크림을 한 입 먹으니 기분이 좋아졌다.",
+      "자전거 바퀴가 바람을 가른다.",
+      "도서관에서 조용히 시간을 보냈다.",
+      "산책 중에 예쁜 강아지를 만났다.",
+      "고요한 아침에 커피를 끓였다.",
+      "친구와 함께 게임을 하며 즐거운 시간을 보냈다.",
+      "바닷가에서 모래성을 쌓았다.",
+      "하늘을 나는 새를 바라봤다.",
+      "우산을 쓰고 빗속을 걸었다.",
+      "뜨거운 여름날 시원한 수박을 먹었다.",
+      "겨울 아침 창문에 성에가 꼈다.",
+      // 필요시 더 추가 가능
+    ];
+    let currentSentences = [];
+    let currentSentenceIndex = 0;
+    let currentText = "";
+    let overallTypedChars = 0;
+    let overallCorrectChars = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let errorCount = 0;
+    let isComposing = false;
+    let mode = "unlimited";
+    let paused = false;
+    let pauseTime = null;
+    let pauseElapsed = 0;
+    const timeLimit = 60;
+    const errorLimit = 3;
+
+    const modeSelect = document.getElementById("mode-select");
+    const difficultySelect = document.getElementById("difficulty-select");
+    const fontSizeSelect = document.getElementById("font-size");
+    const typingArea = document.getElementById("typing-area");
+    const sampleText = document.getElementById("sample-text");
+    const container = document.getElementById("container");
+    const toggleBtn = document.getElementById("toggle-mode");
+    const pauseBtn = document.getElementById("pause-btn");
+    const resumeBtn = document.getElementById("resume-btn");
+    const goalWpm = document.getElementById("goal-wpm");
+    const goalAccuracy = document.getElementById("goal-accuracy");
+    const sentenceInfo = document.getElementById("sentence-info");
+
+    let userSentences = [];
+
+    function getRandomSentences() {
+      let source = allSentences.concat(userSentences);
+      let shuffled = source.slice().sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 10);
+    }
+
+    function resetHighlights() {
+      sampleText.innerHTML = currentText.split("")
+        .map(letter => `<span>${letter}</span>`)
+        .join("");
+      sampleText.classList.remove("fade-in");
+      void sampleText.offsetWidth;
+      sampleText.classList.add("fade-in");
+    }
+
+    function resetStats() {
+      document.getElementById("error-count").textContent = "오류: 0";
+      errorCount = 0;
+    }
+
+    function updateProgressBar() {
+      const progressBar = document.getElementById("progress-bar");
+      const percentage = Math.round((currentSentenceIndex / currentSentences.length) * 100);
+      progressBar.style.width = percentage + "%";
+      progressBar.textContent = percentage + "%";
+      // 진행 문장/남은 문장 UI
+      sentenceInfo.textContent = `진행: ${currentSentenceIndex+1} / ${currentSentences.length} (남음: ${currentSentences.length-currentSentenceIndex-1})`;
+    }
+
+    // ... 이하 기존 업그레이드 자바스크립트 코드 동일 ...
+    let leaderboard = [];
+    let historyResults = [];
+    try {
+      leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    } catch (e) { leaderboard = []; }
+    try {
+      historyResults = JSON.parse(localStorage.getItem("typingHistory")) || [];
+    } catch (e) { historyResults = []; }
+
+    function updateLeaderboard(newResult) {
+      leaderboard.push(newResult);
+      leaderboard.sort((a, b) => b.wpm - a.wpm);
+      leaderboard = leaderboard.slice(0, 5);
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const leaderboardList = document.getElementById("leaderboard-list");
+      leaderboardList.innerHTML = "";
+      leaderboard.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.textContent = `#${index + 1}: WPM ${entry.wpm}, 정확도 ${entry.accuracy}%, 오류 ${entry.errorCount}`;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    function saveResult(result) {
+      historyResults.push(result);
+      localStorage.setItem("typingHistory", JSON.stringify(historyResults));
+      renderHistory();
+      updateChart();
+      updateLeaderboard(result);
+    }
+
+    function renderHistory() {
+      const historyList = document.getElementById("history-list");
+      historyList.innerHTML = "";
+      historyResults.slice().reverse().forEach((result, index) => {
+        const li = document.createElement("li");
+        li.textContent = `도전 ${historyResults.length - index}: 시간 ${result.time}초, WPM ${result.wpm}, 정확도 ${result.accuracy}%, 오류 ${result.errorCount}`;
+        li.style.cursor = "pointer";
+        li.onclick = () => showRecordDetail(historyResults.length - 1 - index);
+        historyList.appendChild(li);
+      });
+    }
+
+    function showRecordDetail(idx) {
+      const r = historyResults[idx];
+      const box = document.getElementById("record-detail");
+      if (!r) return;
+      box.innerHTML = `
+        <b>도전 상세</b>
+        <br>시간: ${r.time}초 | WPM: ${r.wpm} | 정확도: ${r.accuracy}% | 오류: ${r.errorCount}
+        <br>모드: ${r.mode}
+        <br>문장 목록:<br><small>${(r.sentences||[]).map((s,i)=>`${i+1}. ${s}`).join("<br>")}</small>
+        <br>타임스탬프: ${r.timestamp}
+        <br><button onclick="document.getElementById('record-detail').classList.remove('show')">닫기</button>
+      `;
+      box.classList.add("show");
+      box.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function playErrorSound() {
+      const context = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(440, context.currentTime);
+      oscillator.connect(context.destination);
+      oscillator.start();
+      setTimeout(() => oscillator.stop(), 100);
+    }
+
+    function updateHighlight() {
+      const typed = typingArea.value;
+      const spans = sampleText.querySelectorAll("span");
+      let localErrorCount = 0;
+      let playedErrorSound = false;
+      spans.forEach((span, i) => {
+        const letter = typed[i];
+        if(letter == null) {
+          span.classList.remove("highlight");
+        } else if(letter === span.textContent) {
+          span.classList.remove("highlight");
+        } else {
+          if(!span.classList.contains("highlight")) {
+            if (!playedErrorSound) {
+              playErrorSound();
+              playedErrorSound = true;
+            }
+          }
+          span.classList.add("highlight");
+          localErrorCount++;
+        }
+      });
+      errorCount = localErrorCount;
+      document.getElementById("error-count").textContent = "오류: " + errorCount;
+      if(mode === "error-limit" && errorCount >= errorLimit)
+        finishChallenge();
+    }
+
+    function calculateStats() {
+      if(paused) return;
+      const currentTyped = typingArea.value;
+      let currentCorrect = 0;
+      for(let i = 0; i < currentTyped.length; i++) {
+        if(currentTyped[i] === currentText[i]) currentCorrect++;
+      }
+      let totalTyped = overallTypedChars + currentTyped.length;
+      let totalCorrect = overallCorrectChars + currentCorrect;
+      const elapsedTime = ((Date.now() - startTime) / 1000) - pauseElapsed;
+      const wpm = elapsedTime > 0 ? Math.round((totalTyped / 5) / (elapsedTime / 60)) : 0;
+      const accuracy = totalTyped === 0 ? 100 : Math.round((totalCorrect / totalTyped) * 100);
+      document.getElementById("timer").textContent = "시간: " + Math.floor(elapsedTime) + "초";
+      document.getElementById("wpm").textContent = "WPM: " + wpm;
+      document.getElementById("accuracy").textContent = "정확도: " + accuracy + "%";
+      document.getElementById("error-count").textContent = "오류: " + errorCount;
+      // 목표 달성 체크
+      let goalMsg = "";
+      if(goalWpm.value && wpm >= parseInt(goalWpm.value)) goalMsg += "🎉 목표 WPM 달성! ";
+      if(goalAccuracy.value && accuracy >= parseInt(goalAccuracy.value)) goalMsg += "🎉 목표 정확도 달성!";
+      if(goalMsg) sentenceInfo.textContent = goalMsg;
+      if(mode === "timed" && elapsedTime >= timeLimit)
+        finishChallenge();
+    }
+
+    function finishChallenge() {
+      if (typingArea.disabled) return;
+      clearInterval(timerInterval);
+      timerInterval = null;
+      const currentTyped = typingArea.value;
+      let currentCorrect = 0;
+      for(let i = 0; i < currentTyped.length; i++) {
+        if(currentTyped[i] === currentText[i]) currentCorrect++;
+      }
+      let finalTyped = overallTypedChars + currentTyped.length;
+      let finalCorrect = overallCorrectChars + currentCorrect;
+      const elapsedTime = ((Date.now() - startTime) / 1000) - pauseElapsed;
+      const wpm = elapsedTime > 0 ? Math.round((finalTyped / 5) / (elapsedTime / 60)) : 0;
+      const accuracy = finalTyped === 0 ? 100 : Math.round((finalCorrect / finalTyped) * 100);
+      typingArea.disabled = true;
+      updateProgressBar();
+      const result = {
+        time: Math.floor(elapsedTime),
+        wpm: wpm,
+        accuracy: accuracy,
+        errorCount: errorCount,
+        sentences: currentSentences,
+        mode: mode,
+        timestamp: new Date().toISOString()
+      };
+      saveResult(result);
+    }
+
+    function startTimer() {
+      if(!startTime && !timerInterval) {
+        startTime = Date.now();
+        timerInterval = setInterval(calculateStats, 1000);
+      }
+    }
+
+    function loadNewText() {
+      currentSentences = getRandomSentences();
+      currentSentenceIndex = 0;
+      currentText = currentSentences[currentSentenceIndex];
+      overallTypedChars = 0;
+      overallCorrectChars = 0;
+      sampleText.innerHTML = "";
+      resetHighlights();
+      typingArea.value = "";
+      typingArea.disabled = false;
+      resetStats();
+      clearInterval(timerInterval);
+      timerInterval = null;
+      startTime = null;
+      paused = false;
+      pauseTime = null;
+      pauseElapsed = 0;
+      pauseBtn.style.display = "inline-block";
+      resumeBtn.style.display = "none";
+      updateProgressBar();
+      document.getElementById("timer").textContent = "시간: 0초";
+      document.getElementById("wpm").textContent = "WPM: 0";
+      document.getElementById("accuracy").textContent = "정확도: 100%";
+      resetHighlights();
+      sentenceInfo.textContent = "";
+    }
+
+    function exportCSV() {
+      if(!historyResults.length) return;
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "시간(초),WPM,정확도(%),오류,모드,문장들,타임스탬프\n";
+      historyResults.forEach(result => {
+        csvContent += `"${result.time}","${result.wpm}","${result.accuracy}","${result.errorCount}","${result.mode.replace(/"/g, '""')}","${result.sentences.join(" | ").replace(/"/g, '""')}","${result.timestamp}"\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "typing_history.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 결과 공유
+    document.getElementById("copy-result-btn").onclick = function() {
+      if (!historyResults.length) return;
+      const last = historyResults[historyResults.length - 1];
+      const txt = `초록타자 도전 결과!
+시간: ${last.time}초 / WPM: ${last.wpm} / 정확도: ${last.accuracy}% / 오류: ${last.errorCount}
+도전 모드: ${last.mode}
+문장: ${last.sentences.join(" | ")}`;
+      navigator.clipboard.writeText(txt);
+      alert("결과가 클립보드에 복사되었습니다!");
+    };
+    document.getElementById("kakao-share-btn").onclick = function() {
+      alert("카카오톡 공유 기능은 실제 배포 시 카카오 공유 SDK 연동 필요!");
+    };
+    document.getElementById("twitter-share-btn").onclick = function() {
+      if (!historyResults.length) return;
+      const last = historyResults[historyResults.length - 1];
+      const txt = `초록타자 타자 연습 결과! WPM:${last.wpm} / 정확도:${last.accuracy}% / 오류:${last.errorCount}`;
+      window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(txt), "_blank");
+    };
+
+    let chart;
+    function updateChart() {
+      const chartEl = document.getElementById("history-chart");
+      if (!chartEl) return;
+      const ctx = chartEl.getContext("2d");
+      const labels = historyResults.map(result => new Date(result.timestamp).toLocaleTimeString());
+      const dataWpm = historyResults.map(result => result.wpm);
+      const dataAcc = historyResults.map(result => result.accuracy);
+      if(chart) { chart.destroy(); }
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'WPM',
+              data: dataWpm,
+              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              fill: false,
+              yAxisID: 'y',
+            },
+            {
+              label: '정확도(%)',
+              data: dataAcc,
+              borderColor: 'rgba(255, 152, 0, 1)',
+              backgroundColor: 'rgba(255, 235, 59, 0.2)',
+              fill: false,
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 300, title: { display: true, text: "WPM" } },
+            y1: { beginAtZero: true, max: 100, position: 'right', title: { display: true, text: "정확도(%)" } }
+          }
+        }
+      });
+    }
+
+    // 다크/라이트 모드 토글
+    let darkMode = false;
+    function toggleMode() {
+      darkMode = !darkMode;
+      document.body.classList.toggle("dark", darkMode);
+      container.classList.toggle("dark", darkMode);
+      sampleText.classList.toggle("dark", darkMode);
+      document.getElementById("progress-container").classList.toggle("dark", darkMode);
+      document.getElementById("progress-bar").classList.toggle("dark", darkMode);
+      typingArea.classList.toggle("dark", darkMode);
+      toggleBtn.classList.toggle("dark", darkMode);
+      document.getElementById("leaderboard").classList.toggle("dark", darkMode);
+      document.getElementById("history").classList.toggle("dark", darkMode);
+      document.getElementById("chart-container").classList.toggle("dark", darkMode);
+      toggleBtn.textContent = darkMode ? "라이트 모드" : "다크 모드";
+    }
+
+    typingArea.addEventListener("compositionstart", () => { isComposing = true; });
+    typingArea.addEventListener("compositionend", () => {
+      isComposing = false;
+      updateHighlight();
+      calculateStats();
+    });
+    typingArea.addEventListener("input", () => {
+      if (!isComposing) {
+        if(!startTime) startTimer();
+        updateHighlight();
+        calculateStats();
+      } else {
+        if(!startTime) startTimer();
+      }
+    });
+    typingArea.addEventListener("keydown", (event) => {
+      if(isComposing) return;
+      if(event.key === "Enter") {
+        event.preventDefault();
+        let typed = typingArea.value;
+        if(typed === currentText) {
+          overallTypedChars += currentText.length;
+          overallCorrectChars += currentText.length;
+          currentSentenceIndex++;
+          updateProgressBar();
+          if(currentSentenceIndex < currentSentences.length) {
+            currentText = currentSentences[currentSentenceIndex];
+            sampleText.innerHTML = "";
+            resetHighlights();
+            typingArea.value = "";
+            resetStats();
+          } else {
+            finishChallenge();
+          }
+        } else {
+          playErrorSound();
+        }
+      }
+    });
+
+    // 일시정지/재개
+    pauseBtn.onclick = function() {
+      if (!paused && timerInterval) {
+        paused = true;
+        pauseTime = Date.now();
+        clearInterval(timerInterval);
+        timerInterval = null;
+        typingArea.disabled = true;
+        pauseBtn.style.display = "none";
+        resumeBtn.style.display = "inline-block";
+      }
+    };
+    resumeBtn.onclick = function() {
+      if (paused) {
+        paused = false;
+        pauseElapsed += (Date.now() - pauseTime)/1000;
+        pauseTime = null;
+        typingArea.disabled = false;
+        resumeBtn.style.display = "none";
+        pauseBtn.style.display = "inline-block";
+        timerInterval = setInterval(calculateStats, 1000);
+      }
+    };
+
+    document.getElementById("reset-btn").addEventListener("click", loadNewText);
+    document.getElementById("export-btn").addEventListener("click", exportCSV);
+    toggleBtn.addEventListener("click", toggleMode);
+
+    // 사용자 직접 문장 추가
+    document.getElementById("add-sentences-btn").onclick = function() {
+      const txt = document.getElementById("custom-sentences").value;
+      const arr = txt.split('\n').map(s => s.trim()).filter(Boolean);
+      userSentences = userSentences.concat(arr);
+      document.getElementById("custom-sentences").value = "";
+      alert("추가 완료! 새 도전을 시작하면 반영됩니다.");
+    };
+
+    // 폰트 크기
+    function applyFontSize() {
+      const size = fontSizeSelect.value;
+      if(size === "small") typingArea.style.fontSize = "14px";
+      else if(size === "medium") typingArea.style.fontSize = "16px";
+      else if(size === "large") typingArea.style.fontSize = "20px";
+    }
+    fontSizeSelect.addEventListener("change", applyFontSize);
+
+    modeSelect.addEventListener("change", () => {
+      mode = modeSelect.value;
+      loadNewText();
+    });
+    difficultySelect.addEventListener("change", loadNewText);
+
+    // 초기화
+    loadNewText();
+    renderHistory();
+    renderLeaderboard();
+    updateChart();
+    applyFontSize();
+    window.showRecordDetail = showRecordDetail;
+  </script>
+</body>
+</html>
