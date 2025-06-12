@@ -400,13 +400,22 @@
     }
 
     function playErrorSound() {
-      const context = new (window.AudioContext || window.webkitAudioContext)();
+      // 버그 수정: AudioContext 중복 생성 방지
+      if (window.errorSoundCtx && window.errorSoundCtx.state !== 'closed') {
+        window.errorSoundCtx.close();
+      }
+      window.errorSoundCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const context = window.errorSoundCtx;
       const oscillator = context.createOscillator();
       oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(440, context.currentTime);
       oscillator.connect(context.destination);
       oscillator.start();
-      setTimeout(() => oscillator.stop(), 100);
+      setTimeout(() => {
+        oscillator.stop();
+        oscillator.disconnect();
+        context.close();
+      }, 100);
     }
 
     function updateHighlight() {
@@ -520,8 +529,9 @@
       let csvContent = "data:text/csv;charset=utf-8,";
       csvContent += "시간(초),WPM,정확도(%),오류,모드,문장들,타임스탬프\n";
       historyResults.forEach(result => {
-        // CSV 줄바꿈 오류 방지: 따옴표 안 쌈
-        csvContent += `"${result.time}","${result.wpm}","${result.accuracy}","${result.errorCount}","${result.mode.replace(/"/g, '""')}","${result.sentences.join(" | ").replace(/"/g, '""')}","${result.timestamp}"\n`;
+        // 버그 수정: result.timestamp가 없을 때 예외 방지
+        const safeTimestamp = result.timestamp ? result.timestamp : '';
+        csvContent += `"${result.time}","${result.wpm}","${result.accuracy}","${result.errorCount}","${result.mode.replace(/"/g, '""')}","${(result.sentences||[]).join(" | ").replace(/"/g, '""')}","${safeTimestamp}"\n`;
       });
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
@@ -537,7 +547,17 @@
       const chartEl = document.getElementById("history-chart");
       if (!chartEl) return;
       const ctx = chartEl.getContext("2d");
-      const labels = historyResults.map(result => new Date(result.timestamp).toLocaleTimeString());
+      // 버그 수정: timestamp가 없는 경우 처리
+      const labels = historyResults.map(result => {
+        if (result.timestamp) {
+          try {
+            return new Date(result.timestamp).toLocaleTimeString();
+          } catch (e) {
+            return '';
+          }
+        }
+        return '';
+      });
       const dataWpm = historyResults.map(result => result.wpm);
       if(chart) {
         chart.destroy();
