@@ -125,7 +125,6 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* 다크모드용 추가 스타일 */
     body.dark {
       background: #263238 !important;
       color: #ECEFF1 !important;
@@ -201,6 +200,9 @@
     </div>
     <button id="reset-btn">새로운 도전</button>
     <button id="export-btn">CSV 내보내기</button>
+    <button id="save-progress-btn">진행상황 저장</button>
+    <button id="load-progress-btn">진행상황 불러오기</button>
+    <input type="file" id="progress-file-input" style="display:none;" accept=".ty">
     <div id="leaderboard">
       <h3>리더보드 (최고 WPM)</h3>
       <ul id="leaderboard-list"></ul>
@@ -400,7 +402,6 @@
     }
 
     function playErrorSound() {
-      // 버그 수정: AudioContext 중복 생성 방지
       if (window.errorSoundCtx && window.errorSoundCtx.state !== 'closed') {
         window.errorSoundCtx.close();
       }
@@ -422,7 +423,6 @@
       const typed = typingArea.value;
       const spans = sampleText.querySelectorAll("span");
       let localErrorCount = 0;
-      // highlight 사운드가 여러 번 나는 현상 방지, 최초 한 글자에서만 나게
       let playedErrorSound = false;
       spans.forEach((span, i) => {
         const letter = typed[i];
@@ -467,7 +467,6 @@
     }
 
     function finishChallenge() {
-      // 이미 종료된 경우 중복 실행 방지
       if (typingArea.disabled) return;
       clearInterval(timerInterval);
       timerInterval = null;
@@ -517,23 +516,22 @@
       timerInterval = null;
       startTime = null;
       updateProgressBar();
-      // 새로고침 후 이전 통계가 남는 현상 방지
       document.getElementById("timer").textContent = "시간: 0초";
       document.getElementById("wpm").textContent = "WPM: 0";
       document.getElementById("accuracy").textContent = "정확도: 100%";
       resetHighlights();
     }
 
+    // ★ CSV 한글 깨짐 방지 (BOM 추가)
     function exportCSV() {
       if(!historyResults.length) return;
-      let csvContent = "data:text/csv;charset=utf-8,";
+      let csvContent = "\uFEFF";
       csvContent += "시간(초),WPM,정확도(%),오류,모드,문장들,타임스탬프\n";
       historyResults.forEach(result => {
-        // 버그 수정: result.timestamp가 없을 때 예외 방지
         const safeTimestamp = result.timestamp ? result.timestamp : '';
         csvContent += `"${result.time}","${result.wpm}","${result.accuracy}","${result.errorCount}","${result.mode.replace(/"/g, '""')}","${(result.sentences||[]).join(" | ").replace(/"/g, '""')}","${safeTimestamp}"\n`;
       });
-      const encodedUri = encodeURI(csvContent);
+      const encodedUri = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
       link.setAttribute("download", "typing_history.csv");
@@ -542,12 +540,95 @@
       document.body.removeChild(link);
     }
 
+    // ★ 진행상황 저장
+    document.getElementById("save-progress-btn").addEventListener("click", function() {
+      const progress = {
+        currentSentences,
+        currentSentenceIndex,
+        currentText,
+        overallTypedChars,
+        overallCorrectChars,
+        startTime,
+        errorCount,
+        mode,
+        typingValue: typingArea.value,
+        darkMode
+      };
+      const blob = new Blob([JSON.stringify(progress)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "진행상황.ty";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // ★ 진행상황 불러오기
+    document.getElementById("load-progress-btn").addEventListener("click", function() {
+      document.getElementById("progress-file-input").click();
+    });
+    document.getElementById("progress-file-input").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const progress = JSON.parse(ev.target.result);
+          currentSentences = progress.currentSentences || [];
+          currentSentenceIndex = progress.currentSentenceIndex || 0;
+          currentText = progress.currentText || "";
+          overallTypedChars = progress.overallTypedChars || 0;
+          overallCorrectChars = progress.overallCorrectChars || 0;
+          startTime = progress.startTime || null;
+          errorCount = progress.errorCount || 0;
+          mode = progress.mode || "unlimited";
+          typingArea.value = progress.typingValue || "";
+          darkMode = progress.darkMode || false;
+
+          modeSelect.value = mode;
+          resetHighlights();
+          updateProgressBar();
+          resetStats();
+          updateHighlight();
+          calculateStats();
+          typingArea.disabled = false; // 불러온 뒤 입력 가능
+          if (darkMode) {
+            document.body.classList.add("dark");
+            container.classList.add("dark");
+            sampleText.classList.add("dark");
+            document.getElementById("progress-container").classList.add("dark");
+            document.getElementById("progress-bar").classList.add("dark");
+            typingArea.classList.add("dark");
+            toggleBtn.classList.add("dark");
+            document.getElementById("leaderboard").classList.add("dark");
+            document.getElementById("history").classList.add("dark");
+            document.getElementById("chart-container").classList.add("dark");
+            toggleBtn.textContent = "라이트 모드";
+          } else {
+            document.body.classList.remove("dark");
+            container.classList.remove("dark");
+            sampleText.classList.remove("dark");
+            document.getElementById("progress-container").classList.remove("dark");
+            document.getElementById("progress-bar").classList.remove("dark");
+            typingArea.classList.remove("dark");
+            toggleBtn.classList.remove("dark");
+            document.getElementById("leaderboard").classList.remove("dark");
+            document.getElementById("history").classList.remove("dark");
+            document.getElementById("chart-container").classList.remove("dark");
+            toggleBtn.textContent = "다크 모드";
+          }
+        } catch (err) {
+          alert("진행상황 파일이 올바르지 않습니다!");
+        }
+      };
+      reader.readAsText(file, "utf-8");
+    });
+
     let chart;
     function updateChart() {
       const chartEl = document.getElementById("history-chart");
       if (!chartEl) return;
       const ctx = chartEl.getContext("2d");
-      // 버그 수정: timestamp가 없는 경우 처리
       const labels = historyResults.map(result => {
         if (result.timestamp) {
           try {
@@ -616,12 +697,10 @@
       }
     });
     typingArea.addEventListener("keydown", (event) => {
-      // 한글 조합 중일 때 Enter 무시
       if(isComposing) return;
       if(event.key === "Enter") {
         event.preventDefault();
         let typed = typingArea.value;
-        // 완전 일치만 통과(좌우 trim 제거)
         if(typed === currentText) {
           overallTypedChars += currentText.length;
           overallCorrectChars += currentText.length;
@@ -651,7 +730,6 @@
     renderHistory();
     renderLeaderboard();
     updateChart();
-    // 폰트 크기 초기화 반영
     applyFontSize();
   </script>
 </body>
