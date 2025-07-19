@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>쾌유 메시지</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Nanum Brush Script', cursive;
+      overflow: hidden;
+      background-color: black;
+    }
+
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      background: black;
+      color: white;
+      font-size: 4vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 999;
+    }
+
+    #content {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(to bottom right, #fff0f5, #ffe4e1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 2s ease forwards;
+      opacity: 0;
+    }
+
+    .text {
+      font-size: 5vw;
+      text-align: center;
+      color: #7c3e2d;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.6);
+      margin-bottom: 2vh;
+      z-index: 1;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .yt-bg {
+      position: absolute;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 시작 화면 -->
+  <div id="startScreen">클릭하세요!</div>
+
+  <!-- 본 콘텐츠 -->
+  <div id="content">
+    <div class="text">쾌유를 빌며<br>늘 건강하시길 기도합니다</div>
+    <canvas id="cherryCanvas" width="1920" height="1080"></canvas>
+  </div>
+
+  <!-- 유튜브 플레이어 -->
+  <div class="yt-bg">
+    <iframe id="ytplayer"
+      src="https://www.youtube.com/embed/S-Xm7s9eGxU?enablejsapi=1&autoplay=0&loop=1&playlist=S-Xm7s9eGxU&mute=1"
+      allow="autoplay"
+      frameborder="0">
+    </iframe>
+  </div>
+
+  <script>
+    // YouTube API
+    let tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
+
+    let player;
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('ytplayer', {
+        events: {
+          'onReady': () => {}
+        }
+      });
+    }
+
+    function startCherryBlossom() {
+      const canvas = document.getElementById('cherryCanvas');
+      const ctx = canvas.getContext('2d');
+
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      const petals = [];
+      class Petal {
+        constructor() { this.reset(); }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * -canvas.height;
+          this.size = Math.random() * 12 + 6;
+          this.speedY = Math.random() * 1.2 + 0.5;
+          this.speedX = Math.random() * 1 - 0.5;
+          this.angle = Math.random() * Math.PI * 2;
+          this.angularSpeed = (Math.random() - 0.5) * 0.02;
+          this.opacity = Math.random() * 0.5 + 0.5;
+          this.shadowBlur = Math.random() * 6 + 2;
+        }
+        update() {
+          this.y += this.speedY;
+          this.x += this.speedX;
+          this.angle += this.angularSpeed;
+          if (this.y > canvas.height + this.size) this.reset();
+        }
+        draw() {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 182, 193, ${this.opacity})`;
+          ctx.shadowColor = 'rgba(255, 182, 193, 0.4)';
+          ctx.shadowBlur = this.shadowBlur;
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(-this.size / 2, -this.size / 2, -this.size, this.size / 2, 0, this.size);
+          ctx.bezierCurveTo(this.size, this.size / 2, this.size / 2, -this.size / 2, 0, 0);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      for (let i = 0; i < 60; i++) petals.push(new Petal());
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        petals.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    }
+
+    document.getElementById('startScreen').addEventListener('click', () => {
+      // 시작 화면 숨김
+      document.getElementById('startScreen').style.display = 'none';
+
+      // 본 콘텐츠 보여주기
+      const content = document.getElementById('content');
+      content.style.display = 'flex';
+
+      // YouTube 재생 + 음소거 해제
+      if (player && player.playVideo) {
+        player.unMute();
+        player.playVideo();
+      }
+
+      // 벚꽃 시작
+      startCherryBlossom();
+    });
+  </script>
+</body>
+</html>
