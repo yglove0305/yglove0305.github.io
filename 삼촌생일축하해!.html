@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>삼촌 생일축하해!</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: black;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      height: 100vh;
+      position: relative;
+    }
+    #startScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2.5em;
+      cursor: pointer;
+      z-index: 100;
+      user-select: none;
+    }
+    h1 {
+      position: absolute;
+      top: 30px;
+      width: 100%;
+      text-align: center;
+      font-size: 3em;
+      color: #fff;
+      animation: glow 2s ease-in-out infinite alternate;
+      z-index: 10;
+      display: none;
+    }
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 10px #ff69b4, 0 0 20px #ff69b4, 0 0 30px #ff69b4;
+      }
+      to {
+        text-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff;
+      }
+    }
+    .cake {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      z-index: 3;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    .layer {
+      width: 100%;
+      height: 60px;
+      border-radius: 12px;
+      background: #ff8c94;
+      margin-bottom: 10px;
+      position: relative;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .layer:nth-child(2) {
+      background: #fcd5ce;
+      width: 80%;
+    }
+    .layer:nth-child(3) {
+      background: #f9dcc4;
+      width: 60%;
+    }
+    .candles {
+      position: absolute;
+      top: -50px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .candle {
+      width: 8px;
+      height: 30px;
+      background: #ffffff;
+      border-radius: 2px;
+      position: relative;
+    }
+    .flame {
+      width: 10px;
+      height: 10px;
+      background: yellow;
+      border-radius: 50%;
+      position: absolute;
+      top: -10px;
+      left: -1px;
+      animation: flicker 0.3s infinite alternate;
+      box-shadow: 0 0 10px yellow;
+    }
+    @keyframes flicker {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.3); opacity: 0.8; }
+    }
+    .balloon {
+      position: absolute;
+      bottom: -100px;
+      width: 50px;
+      height: 70px;
+      background: red;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation: rise 10s linear infinite;
+      z-index: 2;
+      box-shadow: inset -5px -10px rgba(255,255,255,0.2);
+    }
+    .string {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      width: 2px;
+      height: 60px;
+      background: white;
+      transform: translateX(-50%);
+    }
+    @keyframes rise {
+      0% { transform: translateY(0); opacity: 0; }
+      10% { opacity: 1; }
+      100% { transform: translateY(-120vh); opacity: 0; }
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="startScreen">화면을 클릭하세요!</div>
+
+  <h1>🎉 삼촌 생일축하해! 🎂</h1>
+
+  <div class="cake">
+    <div class="candles">
+      <div class="candle"><div class="flame"></div></div>
+      <div class="candle"><div class="flame"></div></div>
+      <div class="candle"><div class="flame"></div></div>
+      <div class="candle"><div class="flame"></div></div>
+      <div class="candle"><div class="flame"></div></div>
+      <div class="candle"><div class="flame"></div></div>
+      <div class="candle"><div class="flame"></div></div>
+    </div>
+    <div class="layer"></div>
+    <div class="layer"></div>
+    <div class="layer"></div>
+  </div>
+
+  <canvas id="fireworks"></canvas>
+
+  <audio id="birthdayAudio" src="https://cdn.pixabay.com/download/audio/2025/07/02/audio_90ee6073fd.mp3?filename=happy-birthday-368842.mp3" preload="auto"></audio>
+
+  <script>
+    const startScreen = document.getElementById('startScreen');
+    const header = document.querySelector('h1');
+    const cake = document.querySelector('.cake');
+    const audio = document.getElementById('birthdayAudio');
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    let fireworks = [];
+    const colors = ["#f94144", "#f3722c", "#f8961e", "#90be6d", "#577590"];
+
+    // 초기 세팅
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // 풍선 만들기
+    function createBalloon() {
+      const balloon = document.createElement('div');
+      balloon.classList.add('balloon');
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      balloon.style.background = color;
+      balloon.style.left = Math.random() * (window.innerWidth - 60) + 'px';
+      const string = document.createElement('div');
+      string.classList.add('string');
+      balloon.appendChild(string);
+      document.body.appendChild(balloon);
+      setTimeout(() => balloon.remove(), 10000);
+    }
+
+    let balloonInterval;
+
+    // 불꽃 만들기
+    function createFirework(x, y) {
+      const count = 30;
+      for (let i = 0; i < count; i++) {
+        fireworks.push({
+          x,
+          y,
+          angle: Math.random() * 2 * Math.PI,
+          speed: Math.random() * 4 + 2,
+          alpha: 1,
+          color: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
+    }
+
+    // 불꽃 그리기
+    function drawFireworks() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < fireworks.length; i++) {
+        const f = fireworks[i];
+        f.x += Math.cos(f.angle) * f.speed;
+        f.y += Math.sin(f.angle) * f.speed;
+        f.alpha -= 0.01;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = f.color;
+        ctx.globalAlpha = f.alpha;
+        ctx.fill();
+        if (f.alpha <= 0) {
+          fireworks.splice(i, 1);
+          i--;
+        }
+      }
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(drawFireworks);
+    }
+
+    // 시작 클릭 이벤트
+    startScreen.addEventListener('click', () => {
+      startScreen.style.display = 'none';
+      header.style.display = 'block';
+      cake.style.display = 'flex';
+
+      // 오디오 재생 (자동 재생 정책 때문에 클릭 이벤트 내에서 시작)
+      audio.play();
+
+      // 풍선 계속 생성
+      balloonInterval = setInterval(createBalloon, 600);
+
+      // 불꽃놀이
+      canvas.addEventListener('click', e => {
+        createFirework(e.clientX, e.clientY);
+      });
+
+      drawFireworks();
+    });
+
+    // 창 크기 변경 대응
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
