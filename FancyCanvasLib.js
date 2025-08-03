@@ -1,20 +1,13 @@
-// FancyCanvasLib.js
-// npm 패키지 스타일 ES6 모듈 캔버스 라이브러리 (완전판, ~700줄)
-
 export default class FancyCanvasLib {
   constructor(container = document.body, options = {}) {
-    // 컨테이너 및 기본 설정
     this.container = container;
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d');
     this.container.appendChild(this.canvas);
-
     this.width = options.width || window.innerWidth;
     this.height = options.height || window.innerHeight;
     this.canvas.width = this.width;
     this.canvas.height = this.height;
-
-    // 데이터 구조
     this.shapes = [];
     this.particles = [];
     this.backgroundStars = [];
@@ -31,13 +24,13 @@ export default class FancyCanvasLib {
     this.isFree = false;
     this.freePath = [];
 
-    // 초기화 호출
+    
     this._initBackgroundStars(options.starCount || 100);
     this._setupEvents();
     requestAnimationFrame(this._animate.bind(this));
   }
 
-  /* =================== 유틸 함수 =================== */
+ 
   static randomColor(alpha = 0.7) {
     const r = Math.floor(Math.random() * 255);
     const g = Math.floor(Math.random() * 255);
@@ -57,7 +50,7 @@ export default class FancyCanvasLib {
     return (--t) * t * t + 1;
   }
 
-  /* ================ 배경 별 효과 ================ */
+
   _initBackgroundStars(count) {
     for (let i = 0; i < count; i++) {
       this.backgroundStars.push({
@@ -91,7 +84,7 @@ export default class FancyCanvasLib {
     c.restore();
   }
 
-  /* ================ 그리드 표시 기능 ================ */
+  
   drawGrid() {
     const c = this.ctx;
     c.save();
@@ -105,23 +98,23 @@ export default class FancyCanvasLib {
     c.restore();
   }
 
-  /* ================ 레이어 기능 ================ */
+
   addLayer(name) { if (!this.layers[name]) this.layers[name] = []; }
   removeLayer(name) { delete this.layers[name]; }
   getLayer(name) { return this.layers[name] || null; }
 
-  /* ================ 이벤트 API ================ */
+
   on(evt, fn) { if (!this.eventListeners[evt]) this.eventListeners[evt] = []; this.eventListeners[evt].push(fn); }
   off(evt, fn) { if (!this.eventListeners[evt]) return; this.eventListeners[evt] = this.eventListeners[evt].filter(f => f !== fn); }
   _emit(evt, data) { (this.eventListeners[evt] || []).forEach(f => f(data)); }
 
-  /* ================ 비동기 로드 텍스쳐 ================ */
+
   loadImage(url, cb) { const img = new Image(); img.onload = () => cb(img); img.src = url; }
 
-  /* ================ 스냅투그리드 =================== */
+
   snap(x, y) { return [Math.round(x / this.gridSize) * this.gridSize, Math.round(y / this.gridSize) * this.gridSize]; }
 
-  /* ================ 상태 저장/불러오기 ================ */
+  
   exportState() { return JSON.stringify({ shapes: this.shapes.map(s => s.serialize()), layers: this.layers, version: this.stateVersion }); }
   importState(json) {
     const st = JSON.parse(json);
@@ -139,12 +132,12 @@ export default class FancyCanvasLib {
     }
   }
 
-  /* =============== 파티클 이펙트 ================= */
+ 
   _createParticles(x, y, count = 30) {
     for (let i = 0; i < count; i++) { this.particles.push(new FancyCanvasLib.Particle(x, y)); }
   }
 
-  /* =============== Tween 애니메이션 =============== */
+  
   tween(obj, prop, to, duration = 1000) {
     const from = obj[prop];
     const start = Date.now();
@@ -163,7 +156,7 @@ export default class FancyCanvasLib {
     });
   }
 
-  /* =============== 도형 생성 API =============== */
+ 
   addCircle(x, y, r, color) {
     const c = new FancyCanvasLib.Circle(x || Math.random() * this.width,
       y || Math.random() * this.height, r, color);
